@@ -1,0 +1,1 @@
+{"name":"nocturne-eclipse","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check dist/main.mjs && node --check dist/model.mjs && node --check dist/render.mjs && node --check dist/audio.mjs"}}
