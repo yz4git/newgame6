@@ -4,7 +4,9 @@
 
 ## 遊ぶ
 
-GitHub Pages: https://yz4git.github.io/newgame6/
+プレイURL（Sites版）: https://nocturne-eclipse.yzgame.chatgpt.site
+
+GitHub Pages版は公開待ちです。現在は上のURLからプレイしてください。
 
 ルートの `index.html` から `dist/` に移動します。ビルド不要。`dist/` をそのまま静的配信できます。
 
