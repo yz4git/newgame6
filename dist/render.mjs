@@ -1,20 +1,21 @@
-import {FLOOR,clamp} from './model.mjs?v=2.0.0';
+import {FLOOR,clamp} from './model.mjs?v=2.1.0';
 const TAU=Math.PI*2;
 export class Renderer{
- constructor(canvas,assets,atlas){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});this.assets=assets;this.atlas=atlas;this.camera=0;this.width=1280;this.shake=0;this.clock=0;this.lastRoom=-1;this.fade=0;this.options={shake:true,reducedMotion:false,quality:'auto',contrast:false};this.glows=new Map();this.autoDpr=1.75;this.resize();}
+ constructor(canvas,assets,atlas){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});this.assets=assets;this.atlas=atlas;this.camera=0;this.cameraBias=.38;this.width=1280;this.shake=0;this.clock=0;this.lastRoom=-1;this.fade=0;this.options={shake:true,reducedMotion:false,quality:'auto',contrast:false};this.glows=new Map();this.autoDpr=1.75;this.resize();}
  resize(){const cap=this.options.quality==='battery'?1:this.options.quality==='high'?2:this.autoDpr;const dpr=Math.min(devicePixelRatio||1,cap);this.canvas.width=Math.round(innerWidth*dpr);this.canvas.height=Math.round(innerHeight*dpr);this.width=Math.max(800,720*innerWidth/innerHeight);this.height=720;this.scale=this.canvas.width/this.width;this.height=this.canvas.height/this.scale;this.portrait=innerHeight>innerWidth;}
  setOptions(options){this.options={...this.options,...options};this.resize();}
  glow(x,y,r,color,alpha=1){const c=this.ctx;let light=this.glows.get(color);if(!light){light=document.createElement('canvas');light.width=light.height=128;const g=light.getContext('2d'),gradient=g.createRadialGradient(64,64,0,64,64,64);gradient.addColorStop(0,color);gradient.addColorStop(.2,color+'70');gradient.addColorStop(1,color+'00');g.fillStyle=gradient;g.fillRect(0,0,128,128);this.glows.set(color,light);}c.save();c.globalAlpha=alpha;c.globalCompositeOperation='screen';c.drawImage(light,x-r,y-r,r*2,r*2);c.restore();}
  draw(model,dt,title=false){
  const c=this.ctx;this.clock+=dt;const t=this.options.reducedMotion?this.clock*.3:this.clock,r=model.room,p=model.player,V=this.width,H=this.height;
- if(r.id!==this.lastRoom){this.camera=clamp(p.x-V*.34,0,Math.max(0,r.width-V));this.lastRoom=r.id;this.fade=.45;}
- const target=title?clamp(430+Math.sin(t*.04)*150,0,r.width-V):clamp(p.x-V*.36+p.vx*.13,0,Math.max(0,r.width-V));this.camera+=(target-this.camera)*(1-Math.exp(-dt*5));
+ if(r.id!==this.lastRoom){this.cameraBias=p.dir===1?.38:.62;this.camera=clamp(p.x-V*this.cameraBias,0,Math.max(0,r.width-V));this.lastRoom=r.id;this.fade=.45;}
+ this.cameraBias+=((p.dir===1?.38:.62)-this.cameraBias)*(1-Math.exp(-dt*2.5));
+ const target=title?clamp(430+Math.sin(t*.04)*150,0,r.width-V):clamp(p.x-V*this.cameraBias+clamp(p.vx*.1,-45,45),0,Math.max(0,r.width-V));this.camera+=(target-this.camera)*(1-Math.exp(-dt*5));
  this.shake=Math.max(0,this.shake-dt*24);c.setTransform(this.scale,0,0,this.scale,0,0);c.clearRect(0,0,V,H);c.fillStyle='#090d18';c.fillRect(0,0,V,H);c.save();
  // Portrait preserves the full gameplay height in the central section instead of stretching art.
  const vertical=this.portrait?(H-720)*.38:0;const shake=this.options.shake&&!this.options.reducedMotion?this.shake:0;c.translate((Math.random()-.5)*shake,vertical+(Math.random()-.5)*shake);
  this.background(r,t,V);
  const cam=this.camera;c.save();c.translate(-cam,0);
- this.drawArchitecture(r,t);
+ this.drawArchitecture(r,t);if(model.bossActive)this.arenaBarrier(700,FLOOR,t);
  for(const pl of r.platforms)this.platform(pl.x,pl.y,pl.w,false,r.theme);
  this.platform(0,FLOOR,r.width,true,r.theme);
  for(const b of model.breakables)if(!b.broken)this.candle(b.x,FLOOR,t+b.x,false);
@@ -27,7 +28,7 @@ export class Renderer{
  // A restrained light pool separates moving actors from the detailed architecture.
  this.glow(p.x,p.y-60,105,'#6c8aaf',.13);
  for(const e of model.enemies)if(Math.abs(e.x-cam-V/2)<V/2+220)this.enemy(e,t);
- for(const s of model.shots){c.save();c.globalCompositeOperation='screen';c.strokeStyle=s.enemy?'#f2a2a8':'#a6e1ff';c.lineWidth=3;c.beginPath();c.moveTo(s.x-s.vx*.055,s.y-s.vy*.055);c.lineTo(s.x,s.y);c.stroke();this.glow(s.x,s.y,33,s.enemy?'#cf567d':'#68bdff',.8);c.fillStyle='#fff0db';c.beginPath();c.arc(s.x,s.y,s.enemy?5:6,0,TAU);c.fill();c.restore();}
+ for(const s of model.shots){c.save();c.globalCompositeOperation='screen';c.strokeStyle=s.enemy?'#f2a2a8':'#a6e1ff';c.lineWidth=3;c.beginPath();c.moveTo(s.x-s.vx*.055,s.y-s.vy*.055);c.lineTo(s.x,s.y);c.stroke();this.glow(s.x,s.y,33,s.enemy?'#cf567d':'#68bdff',.8);c.fillStyle='#fff0db';c.beginPath();if(s.enemy){const size=s.kind==='ember'?7:9;c.moveTo(s.x,s.y-size);c.lineTo(s.x+size,s.y);c.lineTo(s.x,s.y+size);c.lineTo(s.x-size,s.y);c.closePath();}else c.arc(s.x,s.y,8,0,TAU);c.fill();c.restore();}
  this.hero(model,t);
  for(const par of model.particles){c.globalAlpha=clamp(par.life/.35,0,1);c.fillStyle=par.color;c.fillRect(par.x,par.y,par.size,par.size);}c.globalAlpha=1;
  for(const e of model.effects)this.effect(e,t);
@@ -78,10 +79,11 @@ export class Renderer{
  const p=model.player,c=this.ctx;let key='motion',frame=8+Math.floor(p.anim*4)%4,y=p.y,rotation=0;
  if(!p.grounded){key='hero';frame=p.vy<0?6:7;}else if(Math.abs(p.vx)>15){frame=Math.floor(p.run)%8;y+=Math.sin(p.run*Math.PI/2)*1.2;}
  if(p.attack>0){key='hero';const q=1-p.attack/p.attackTotal;frame=q<.25?8:q<.68?9:10;rotation=Math.sin(q*Math.PI)*(p.combo===1?-.05:.04);}
+ if(p.cast>0&&p.attack<=0){key='hero';frame=9;this.glow(p.x+p.dir*45,p.y-82,50,'#a3dcff',.35);}
  if(p.dash>0){key='hero';frame=11;}if(p.land>0)y+=p.land*18;
  c.save();c.globalAlpha=.32;c.fillStyle='#000';c.beginPath();c.ellipse(p.x,p.grounded?p.y+3:FLOOR+3,p.grounded?30:23,5,0,0,TAU);c.fill();c.restore();
  if(!this.options.reducedMotion)for(const a of p.trail)this.sprite('hero',11,a.x,a.y,150,a.dir,a.life*.9);
- const alpha=p.inv>0&&p.dash<=0?.72+Math.sin(t*30)*.15:1;
+ const alpha=p.inv>0&&p.dash<=0?.88+Math.sin(t*22)*.09:1;
  this.glow(p.x,p.y-68,70,'#aac4e6',.08);
  if(this.options.contrast)this.glow(p.x,p.y-68,75,'#b9dbff',.17);
  this.sprite(key,frame,p.x,y,150,p.dir,alpha,p.hurt,rotation);
@@ -111,15 +113,21 @@ export class Renderer{
  c.save();c.globalAlpha=alpha*.27;c.fillStyle='#000';c.beginPath();c.ellipse(e.x,e.type==='bat'||e.type==='wraith'?FLOOR:e.y,32,5,0,0,TAU);c.fill();c.restore();
  const flip=e.dir===1?-1:1;this.sprite(key,frame,e.x,y,height,flip,alpha,e.flash,rotation);
  if(e.hp>0&&['windup','chant','summon'].includes(e.state)){
-   const yy=e.y-(e.type==='boss'?225:e.type==='bat'?65:e.type==='wraith'?145:160);this.glow(e.x,yy,25,'#ef8693',.35);c.fillStyle='#f6b7ae';c.font='bold 21px Georgia';c.textAlign='center';c.fillText('!',e.x,yy+6);
+   const yy=e.y-(e.type==='boss'?225:e.type==='bat'?65:e.type==='wraith'?145:160);this.glow(e.x,yy,25,'#ef8693',.35);c.save();c.fillStyle='#121421ee';c.fillRect(e.x-12,yy-19,24,29);c.strokeStyle='#e5a0ae';c.lineWidth=1.5;c.strokeRect(e.x-12,yy-19,24,29);c.fillStyle='#ffe1cf';c.font='bold 25px Georgia';c.textAlign='center';c.fillText('!',e.x,yy+4);const duration=e.type==='boss'?(e.phase===2?.95:1.2):e.type==='acolyte'?1.15:e.type==='wraith'?.9:e.type==='lancer'?.86:.6;c.fillStyle='#f1a0b0';c.fillRect(e.x-12,yy+13,24*clamp(1-e.timer/duration,0,1),3);c.restore();
    if(e.type==='boss'&&e.state==='windup'){c.fillStyle='#d2627445';c.fillRect(e.x+(e.swingDir<0?-380:0),FLOOR-6,380,6);}
    if(e.type==='lancer'){c.strokeStyle='#da879488';c.lineWidth=2;c.beginPath();c.moveTo(e.x,e.y-10);c.lineTo(e.x+e.dir*190,e.y-10);c.stroke();}
    if(e.type==='acolyte'){c.save();c.setLineDash([3,10]);c.strokeStyle='#efb16a77';c.lineWidth=1.5;c.beginPath();c.moveTo(e.x,e.y-97);c.lineTo(e.x+Math.cos(e.aim)*500,e.y-97+Math.sin(e.aim)*500);c.stroke();c.restore();this.glow(e.x+e.dir*40,e.y-100,35,'#efaf6f',.45);}
  }
+ if(e.state==='transform'){c.save();c.font='16px Georgia';c.textAlign='center';c.fillStyle='#e5bad8';c.fillText('祈りの結界',e.x,e.y-255);c.restore();}
  if(e.type!=='boss'&&e.hp>0&&(e.hp<e.maxHp||e.warden||this.options.contrast)){
    const yy=e.y-(e.type==='bat'?54:e.type==='wraith'?150:e.warden?205:165),w=e.warden?85:48;c.fillStyle='#10131e';c.fillRect(e.x-w/2,yy,w,5);c.fillStyle=e.warden?'#d6b67b':'#b86570';c.fillRect(e.x-w/2+1,yy+1,(w-2)*e.hp/e.maxHp,3);
    if(e.warden){c.font='11px Georgia';c.textAlign='center';c.fillStyle='#ddc79f';c.fillText(e.warden==='tide'?'潮の守り人':'鐘の守り人',e.x,yy-8);}
  }
+ }
+ arenaBarrier(x,y,t){
+ const c=this.ctx;c.save();const g=c.createLinearGradient(x-34,0,x+34,0);g.addColorStop(0,'#9ba9e700');g.addColorStop(.5,'#a2acd640');g.addColorStop(1,'#9ba9e700');c.fillStyle=g;c.fillRect(x-34,y-280,68,280);
+ for(let i=0;i<4;i++){c.strokeStyle=i%2?'#b9c3e675':'#5f739677';c.lineWidth=i%2?1:2;c.beginPath();c.moveTo(x-10+i*6,y);c.bezierCurveTo(x+Math.sin(t+i)*13,y-80,x+Math.cos(t*.7+i)*18,y-190,x-12+i*7,y-270);c.stroke();}
+ c.font='15px Georgia';c.fillStyle='#c9c5e3';c.textAlign='center';c.fillText('聖域の封鎖',x,y-292);this.glow(x,y-110,85,'#a8acdd',.14);c.restore();
  }
  hazard(h,t){
  const c=this.ctx;c.save();c.strokeStyle=h.active?'#f2b2c2':h.warn>0?'#e9a3b5':'#796579aa';c.lineWidth=2;c.beginPath();c.moveTo(h.x,FLOOR-2);c.lineTo(h.x+h.w,FLOOR-2);c.stroke();

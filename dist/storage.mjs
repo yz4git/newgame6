@@ -1,4 +1,4 @@
-import {validateSave} from './model.mjs?v=2.0.0';
+import {validateSave} from './model.mjs?v=2.1.0';
 export const SAVE_KEY='nocturne-eclipse-save-v2',BACKUP_KEY=SAVE_KEY+'-backup',SETTINGS_KEY='nocturne-eclipse-settings-v2';
 const LEGACY_KEY='nocturne-eclipse-save-v1';
 export const DEFAULT_SETTINGS={difficulty:'standard',music:.6,effects:.8,shake:true,reducedMotion:false,contrast:false,quality:'auto',touchScale:1,touchOpacity:.72,leftHanded:false};
@@ -21,10 +21,20 @@ export class SaveStore{
     return null;
   }
   save(data){
-    try{const packed=packSave(data),previous=this.storage.getItem(SAVE_KEY);if(previous){try{unpackSave(previous);this.storage.setItem(BACKUP_KEY,previous);}catch{}}
+    try{const packed=packSave(data),previous=this.storage.getItem(SAVE_KEY);if(previous){try{const old=unpackSave(previous);if(JSON.stringify(old)!==JSON.stringify(unpackSave(packed)))this.storage.setItem(BACKUP_KEY,previous);}catch{}}
       this.storage.setItem(SAVE_KEY,packed);this.savedAt=JSON.parse(packed).savedAt;this.ok=true;return true;
     }catch{this.ok=false;return false;}
   }
+  readBackup(){try{const raw=this.storage?.getItem(BACKUP_KEY);return raw?unpackSave(raw):null;}catch{return null;}}
   readSettings(){try{return normalizeSettings(JSON.parse(this.storage?.getItem(SETTINGS_KEY)||'{}'));}catch{return {...DEFAULT_SETTINGS};}}
   writeSettings(settings){try{this.storage.setItem(SETTINGS_KEY,JSON.stringify(normalizeSettings(settings)));return true;}catch{return false;}}
+}
+
+// A title preview is never a saveable journey, even while its settings/help are open.
+export class JourneySession{
+  constructor(store){this.store=store;this.model=null;}
+  get active(){return this.model!==null;}
+  start(model){this.model=model;}
+  stop(){this.model=null;}
+  save(){if(!this.model)return null;const data=this.model.saveData();return {data,ok:this.store.save(data)};}
 }

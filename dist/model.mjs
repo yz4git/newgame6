@@ -1,4 +1,4 @@
-import {ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO} from './content.mjs?v=2.0.0';
+import {ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO} from './content.mjs?v=2.1.0';
 export {ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO};
 export const GRAVITY=1900;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -32,7 +32,7 @@ export class GameModel{
   constructor(progress=null,options={}){
     this.progress=validateSave(progress)||freshProgress();this.options={difficulty:'standard',...options};
     this.events=[];this.particles=[];this.shots=[];this.effects=[];this.time=0;this.freeze=0;this.state='play';this.prev={};this.pending={};this.transitionCooldown=1;this.bossActive=false;this.bossPhase=1;
-    this.player={x:200,y:FLOOR,vx:0,vy:0,dir:1,hp:100,mp:100,potions:3,inv:0,dash:0,dashCd:0,magicCd:0,attack:0,attackId:0,attackBuffer:0,combo:0,comboWindow:0,jumpBuffer:0,coyote:0,jumps:0,grounded:true,anim:0,hurt:0,land:0,drop:0,run:0,trail:[],dashReward:false};
+    this.player={x:200,y:FLOOR,vx:0,vy:0,dir:1,hp:100,mp:100,potions:3,inv:0,dash:0,dashCd:0,magicCd:0,cast:0,dashBuffer:0,magicBuffer:0,attack:0,attackId:0,attackBuffer:0,combo:0,comboWindow:0,jumpBuffer:0,coyote:0,jumps:0,grounded:true,anim:0,hurt:0,land:0,drop:0,run:0,trail:[],dashReward:false};
     this.enter(this.progress.room,this.progress.x,this.progress.y,false);this.player.hp=this.maxHp;this.player.mp=this.maxMp;
   }
   get room(){return ROOMS[this.progress.room];}
@@ -46,7 +46,7 @@ export class GameModel{
   drain(){return this.events.splice(0);}
   enter(id,x=180,y=FLOOR,save=true){
     const r=ROOMS[id];if(!r)return false;this.progress.room=id;
-    Object.assign(this.player,{x:clamp(x,70,r.width-70),y,vx:0,vy:0,grounded:true,jumps:0,attack:0,attackBuffer:0,dash:0,inv:1.3,trail:[]});
+    Object.assign(this.player,{x:clamp(x,70,r.width-70),y,vx:0,vy:0,grounded:true,jumps:0,attack:0,attackBuffer:0,dashBuffer:0,magicBuffer:0,dash:0,cast:0,inv:1.3,trail:[]});
     this.enemies=r.enemies.filter(e=>(e.type!=='boss'||!this.progress.bossDefeated)&&(!e.warden||!this.progress.wardens.includes(e.warden))).map((e,i)=>{
       const hp=ENEMY_INFO[e.type].hp*(e.warden?1.65:1);
       return {...e,id:i,homeX:e.x,homeY:e.y,vx:0,vy:0,dir:-1,hp,maxHp:hp,state:'idle',timer:0,cool:1+i*.23,anim:i,flash:0,lastHit:-1,cycle:0,dead:0,phase:1};
@@ -118,23 +118,25 @@ export class GameModel{
     // Latch short action presses even when an impact has briefly stopped simulation.
     if(this.freeze>0){this.freeze-=dt;for(const k of ['jump','attack','dash','magic','heal','interact','down'])if(input[k]&&!this.prev[k])this.pending[k]=true;return;}
     input={...input,...this.pending};this.pending={};
-    this.progress.time+=dt;const p=this.player,r=this.room,pressed=k=>!!input[k]&&!this.prev[k];this.transitionCooldown-=dt;this.gateNotice=Math.max(0,this.gateNotice-dt);
-    for(const key of ['inv','dash','dashCd','magicCd','comboWindow','jumpBuffer','attackBuffer','coyote','hurt','land','drop'])p[key]=Math.max(0,p[key]-dt);
+    this.progress.time+=dt;const p=this.player,r=this.room,pressed=k=>!!input[k]&&!this.prev[k];this.transitionCooldown-=dt;this.gateNotice=Math.max(0,this.gateNotice-dt);const wasDashing=p.dash>0;
+    for(const key of ['inv','dash','dashCd','magicCd','comboWindow','jumpBuffer','attackBuffer','dashBuffer','magicBuffer','cast','coyote','hurt','land','drop'])p[key]=Math.max(0,p[key]-dt);
     p.mp=Math.min(this.maxMp,p.mp+(5.5+this.progress.upgrades.focus*.8)*dt);p.anim+=dt;
-    if(pressed('heal'))this.heal();if(pressed('jump'))p.jumpBuffer=.14;if(pressed('attack'))p.attackBuffer=.18;
+    if(pressed('heal'))this.heal();if(pressed('jump'))p.jumpBuffer=.14;if(pressed('attack'))p.attackBuffer=.18;if(pressed('dash'))p.dashBuffer=.15;if(pressed('magic')){if(p.mp>=25)p.magicBuffer=.24;else this.emit('toast',{text:'魔力が足りません — 回避を成功させると回復'});}
     if(p.grounded)p.coyote=.12;
     const axis=(input.right?1:0)-(input.left?1:0);
     if(axis&&p.dash<=0&&p.hurt<=0&&(p.attack<=0||p.attackTotal-p.attack<.08))p.dir=axis;
     if((pressed('down')||input.down&&pressed('jump'))&&p.grounded&&p.y<FLOOR){p.drop=.22;p.y+=5;p.vy=80;p.jumpBuffer=0;p.coyote=0;p.grounded=false;}
-    if(pressed('dash')&&p.dashCd<=0&&p.hurt<=0){p.dash=.22;p.dashCd=.78;p.inv=Math.max(p.inv,.25);p.vy=0;p.attack=0;p.dashReward=false;this.emit('sound',{name:'dash'});this.spark(p.x,p.y-45,12,'#9aaad0');}
+    if(p.dashBuffer>0&&p.dashCd<=0&&p.hurt<=0){if(axis)p.dir=axis;p.dashBuffer=0;p.dash=.22;p.dashCd=.78;p.inv=Math.max(p.inv,.25);p.vy=0;p.attack=0;p.dashReward=false;this.emit('sound',{name:'dash'});this.spark(p.x,p.y-45,12,'#9aaad0');}
     if(p.jumpBuffer>0&&(p.coyote>0||p.jumps<2)&&p.dash<=0&&p.hurt<=0){
       p.vy=-680;p.grounded=false;p.jumps=p.coyote>0?1:p.jumps+1;p.coyote=0;p.jumpBuffer=0;this.emit('sound',{name:'jump'});this.spark(p.x,p.y,10,p.jumps===2?'#9dcdfc':'#c2b7a0');if(p.jumps===2)this.effects.push({type:'jumpRing',x:p.x,y:p.y+4,life:.35});
     }
     if(!input.jump&&p.vy< -280)p.vy+=dt*1000;
     if((input.attack||p.attackBuffer>0)&&p.attack<=0&&p.dash<=0&&p.hurt<=0)this.startAttack();
-    if(pressed('magic')&&p.magicCd<=0&&p.dash<=0&&p.hurt<=0){
-      if(p.mp>=25){p.mp-=25;p.magicCd=.48;this.shots.push({x:p.x+p.dir*35,y:p.y-65,vx:p.dir*720,vy:0,life:2.3,enemy:false,hits:[]});this.spark(p.x+p.dir*40,p.y-65,12,'#afdfff');this.emit('sound',{name:'magic'});}else this.emit('toast',{text:'魔力が足りません — 回避を成功させると回復'});
+    if(p.magicBuffer>0&&p.magicCd<=0&&p.dash<=0&&p.hurt<=0&&p.mp>=25){
+      p.magicBuffer=0;p.mp-=25;p.magicCd=.48;p.cast=.20;this.shots.push({x:p.x+p.dir*35,y:p.y-65,vx:p.dir*720,vy:0,life:2.3,enemy:false,hits:[]});this.spark(p.x+p.dir*40,p.y-65,12,'#afdfff');this.emit('sound',{name:'magic'});
     }
+    // End a dodge at walking speed instead of carrying its 820px/s speed into a long slide.
+    if(wasDashing&&p.dash<=0)p.vx=axis*300;
     if(p.hurt<=0)p.vx=p.dash>0?p.dir*820:approach(p.vx,axis*300*(p.attack>0?.7:1),(axis?2900:3500)*dt);else p.vx*=Math.pow(.025,dt);
     const prevY=p.y,wasGrounded=p.grounded,fallSpeed=p.vy;p.x+=p.vx*dt;if(p.dash<=0)p.vy+=GRAVITY*dt;p.y+=p.vy*dt;p.grounded=false;
     const surfaces=[{x:0,y:FLOOR,w:r.width},...(p.drop>0?[]:r.platforms)].sort((a,b)=>a.y-b.y);

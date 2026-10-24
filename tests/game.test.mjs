@@ -54,3 +54,12 @@ test('boss runs all three attacks, transitions phase, and victory stays saved',(
  const g=new GameModel();g.progress.seals=['tide','bell'];g.enter(4,800);g.player.inv=100;const boss=g.enemies[0],states=new Set();for(let i=0;i<1100;i++){g.update(1/60,{});states.add(boss.state);}for(const state of ['chant','strike','summon','recover'])assert(states.has(state),state);
  g.hit(boss,500,1,true);step(g,.05);assert.equal(boss.state,'transform');assert.equal(g.bossPhase,2);step(g,2);assert.notEqual(boss.state,'transform');g.hit(boss,1000,1,true);step(g,3.5);assert.equal(g.state,'victory');assert(g.progress.bossDefeated);const loaded=new GameModel(g.saveData());loaded.enter(4);assert.equal(loaded.enemies.length,0);
 });
+
+test('dodge stops without an extra slide and can turn out of an attack',()=>{
+ const g=new GameModel();g.enemies=[];const x=g.player.x;step(g,.02,{dash:true});step(g,.7,{});const distance=g.player.x-x;assert(distance>160&&distance<205,'dodge distance '+distance);
+ g.player.dir=1;g.player.attack=.2;g.player.attackTotal=.36;g.player.dashCd=0;g.prev={};step(g,.02,{left:true,dash:true});assert.equal(g.player.dir,-1);assert(g.player.vx<0);assert.equal(g.player.attack,0);
+});
+test('late dodge inputs and magic pressed during dodge are buffered rather than lost',()=>{
+ const g=new GameModel();g.enemies=[];g.player.dashCd=.1;step(g,.02,{dash:true});step(g,.12,{});assert(g.player.dash>0);
+ g.prev={};step(g,.02,{magic:true});assert(g.player.magicBuffer>0);step(g,.3,{});assert(g.player.mp<90);assert(g.shots.some(s=>!s.enemy));
+});
