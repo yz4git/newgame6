@@ -1,7 +1,7 @@
-import {GameModel,ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO} from './model.mjs?v=2.1.0';
-import {Renderer} from './render.mjs?v=2.1.0';
-import {Soundscape} from './audio.mjs?v=2.1.0';
-import {SaveStore,JourneySession,packSave,unpackSave} from './storage.mjs?v=2.1.0';
+import {GameModel,ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO} from './model.mjs?v=2.2.0';
+import {Renderer} from './render.mjs?v=2.2.0';
+import {Soundscape} from './audio.mjs?v=2.2.0';
+import {SaveStore,JourneySession,packSave,unpackSave} from './storage.mjs?v=2.2.0';
 const $=id=>document.getElementById(id),show=(id,on=true)=>$(id).classList.toggle('hidden',!on);
 let storage;try{storage=localStorage;}catch{}const saves=new SaveStore(storage),session=new JourneySession(saves);let stored=saves.load(),settings=saves.readSettings();
 if(matchMedia('(prefers-reduced-motion: reduce)').matches)settings.reducedMotion=true;
@@ -132,9 +132,9 @@ function frame(now){
  requestAnimationFrame(frame);
 }
 async function boot(){
- const names=['cathedral','crypt','belfry','sanctum','hero','enemies','props','motion','hunters'],assets={};let completed=0;
- await Promise.all(names.map(name=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{assets[name]=im;completed++;$('loadbar').style.width=(completed/10*100)+'%';$('loadText').textContent=`聖堂の扉を開いています… ${completed}/10`;resolve();};im.onerror=()=>reject(new Error(name+' の画像を読み込めませんでした'));im.src='./assets/'+name+'.webp';})));
- const res=await fetch('./assets/atlas.json?v=2.1.0');if(!res.ok)throw new Error('アニメーションデータを読み込めませんでした');const atlas=await res.json();renderer=new Renderer($('game'),assets,atlas);applySettings();$('loadbar').style.width='100%';show('loading',false);model.drain();setMode('title');last=performance.now();requestAnimationFrame(frame);if(saves.recovered)notify('バックアップから旅の記録を復元しました');
+ const names=['cathedral','crypt','belfry','sanctum','hero','enemies','props','motion','hunters','attack'],assets={};let completed=0;
+ await Promise.all(names.map(name=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{assets[name]=im;completed++;$('loadbar').style.width=(completed/11*100)+'%';$('loadText').textContent=`聖堂の扉を開いています… ${completed}/11`;resolve();};im.onerror=()=>reject(new Error(name+' の画像を読み込めませんでした'));im.src='./assets/'+name+'.webp';})));
+ const res=await fetch('./assets/atlas.json?v=2.2.0');if(!res.ok)throw new Error('アニメーションデータを読み込めませんでした');const atlas=await res.json();renderer=new Renderer($('game'),assets,atlas);applySettings();$('loadbar').style.width='100%';show('loading',false);model.drain();setMode('title');last=performance.now();requestAnimationFrame(frame);if(saves.recovered)notify('バックアップから旅の記録を復元しました');
  if('serviceWorker'in navigator&&location.hostname!=='terminal.local')navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});
 }
 boot().catch(e=>{show('loading',false);show('fatal');$('fatal').replaceChildren();const text=document.createElement('p');text.textContent='読み込みを完了できませんでした。'+e.message;const retry=document.createElement('button');retry.className='primary';retry.textContent='もう一度読み込む';retry.onclick=()=>location.reload();$('fatal').append(text,retry);});

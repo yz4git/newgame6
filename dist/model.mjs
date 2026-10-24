@@ -1,4 +1,5 @@
-import {ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO} from './content.mjs?v=2.1.0';
+import {ATTACK_DURATIONS,whipForPlayer,whipHitsBox,enemyHurtBox,castingHand} from './animation.mjs?v=2.2.0';
+import {ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO} from './content.mjs?v=2.2.0';
 export {ROOMS,FLOOR,UPGRADES,LORE,ENEMY_INFO};
 export const GRAVITY=1900;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -91,8 +92,8 @@ export class GameModel{
     if(p.hp<=0){this.state='dead';this.progress.deaths++;this.emit('save');this.emit('dead');}
   }
   moveEnemy(e,dx){
-    const support=e.homeY<FLOOR&&e.type!=='bat'&&e.type!=='wraith'?this.room.platforms.find(s=>Math.abs(s.y-e.homeY)<3&&e.homeX>=s.x&&e.homeX<=s.x+s.w):null;
-    e.x=support?clamp(e.x+dx,support.x+15,support.x+support.w-15):clamp(e.x+dx,Math.max(60,e.homeX-320),Math.min(this.room.width-60,e.homeX+320));
+    const before=e.x;const support=e.homeY<FLOOR&&e.type!=='bat'&&e.type!=='wraith'?this.room.platforms.find(s=>Math.abs(s.y-e.homeY)<3&&e.homeX>=s.x&&e.homeX<=s.x+s.w):null;
+    e.x=support?clamp(e.x+dx,support.x+15,support.x+support.w-15):clamp(e.x+dx,Math.max(60,e.homeX-320),Math.min(this.room.width-60,e.homeX+320));const distance=Math.abs(e.x-before);if(distance>.01){e.moving=true;e.step=(e.step||0)+distance/18;}
   }
   hit(e,amount,dir,magic=false,finisher=false){
     if(e.hp<=0||e.state==='transform')return;
@@ -112,7 +113,7 @@ export class GameModel{
       this.progress.bossDefeated=true;this.bossActive=false;this.shots=[];this.emit('save');this.effects.push({type:'victory',life:3.2});this.emit('shake',{amount:10});
     }
   }
-  startAttack(){const p=this.player;p.combo=p.comboWindow>0?(p.combo+1)%3:0;p.comboWindow=.9;p.attackTotal=[.36,.38,.52][p.combo];p.attack=p.attackTotal;p.attackBuffer=0;p.attackId++;this.emit('sound',{name:p.combo===2?'whipHeavy':'whip'});}
+  startAttack(){const p=this.player;p.combo=p.comboWindow>0?(p.combo+1)%3:0;p.comboWindow=.9;p.attackTotal=ATTACK_DURATIONS[p.combo];p.attack=p.attackTotal;p.attackBuffer=0;p.attackId++;this.emit('sound',{name:p.combo===2?'whipHeavy':'whip'});}
   update(dt,input={}){
     this.time+=dt;this.animateEffects(dt);if(this.state!=='play'){this.prev={...input};return;}
     // Latch short action presses even when an impact has briefly stopped simulation.
@@ -133,17 +134,17 @@ export class GameModel{
     if(!input.jump&&p.vy< -280)p.vy+=dt*1000;
     if((input.attack||p.attackBuffer>0)&&p.attack<=0&&p.dash<=0&&p.hurt<=0)this.startAttack();
     if(p.magicBuffer>0&&p.magicCd<=0&&p.dash<=0&&p.hurt<=0&&p.mp>=25){
-      p.magicBuffer=0;p.mp-=25;p.magicCd=.48;p.cast=.20;this.shots.push({x:p.x+p.dir*35,y:p.y-65,vx:p.dir*720,vy:0,life:2.3,enemy:false,hits:[]});this.spark(p.x+p.dir*40,p.y-65,12,'#afdfff');this.emit('sound',{name:'magic'});
+      p.magicBuffer=0;p.mp-=25;p.magicCd=.48;p.cast=.20;const hand=castingHand(p);this.shots.push({x:hand.x,y:hand.y,vx:p.dir*720,vy:0,life:2.3,enemy:false,hits:[]});this.spark(p.x+p.dir*40,p.y-65,12,'#afdfff');this.emit('sound',{name:'magic'});
     }
     // End a dodge at walking speed instead of carrying its 820px/s speed into a long slide.
     if(wasDashing&&p.dash<=0)p.vx=axis*300;
-    if(p.hurt<=0)p.vx=p.dash>0?p.dir*820:approach(p.vx,axis*300*(p.attack>0?.7:1),(axis?2900:3500)*dt);else p.vx*=Math.pow(.025,dt);
+    if(p.hurt<=0)p.vx=p.dash>0?p.dir*820:approach(p.vx,axis*300*(p.grounded&&(p.attack>0||p.cast>0)?0:1),(axis?2900:3500)*dt);else p.vx*=Math.pow(.025,dt);
     const prevY=p.y,wasGrounded=p.grounded,fallSpeed=p.vy;p.x+=p.vx*dt;if(p.dash<=0)p.vy+=GRAVITY*dt;p.y+=p.vy*dt;p.grounded=false;
     const surfaces=[{x:0,y:FLOOR,w:r.width},...(p.drop>0?[]:r.platforms)].sort((a,b)=>a.y-b.y);
     if(p.vy>=0)for(const s of surfaces){if(p.x+16>s.x&&p.x-16<s.x+s.w&&prevY<=s.y+3&&p.y>=s.y){p.y=s.y;p.vy=0;p.grounded=true;p.jumps=0;break;}}
     if(p.y>FLOOR){p.y=FLOOR;p.vy=0;p.grounded=true;p.jumps=0;}
     if(!wasGrounded&&p.grounded&&fallSpeed>180){p.land=.12;this.spark(p.x,p.y,fallSpeed>550?12:6,'#a0a8b7',90);this.emit('sound',{name:'land'});}
-    p.x=clamp(p.x,28,r.width-28);p.run+=Math.abs(p.vx)*dt/28;
+    p.x=clamp(p.x,28,r.width-28);p.run+=Math.abs(p.vx)*dt/18;
     if(p.dash>0&&Math.floor(p.anim*60)%2===0){p.trail.push({x:p.x,y:p.y,dir:p.dir,life:.24});}for(const a of p.trail)a.life-=dt;p.trail=p.trail.filter(a=>a.life>0).slice(-7);
     this.updateAttack(dt);
     for(const e of this.enemies)this.updateEnemy(e,dt);
@@ -158,16 +159,16 @@ export class GameModel{
     this.prev={...input};
   }
   updateAttack(dt){
-    const p=this.player;if(p.attack<=0)return;p.attack-=dt;const elapsed=p.attackTotal-p.attack;
-    if(elapsed<.095||elapsed>(p.combo===2?.39:.27))return;
-    const range=162+p.combo*34+(this.progress.relic?28:0);
-    for(const e of this.enemies){const dx=(e.x-p.x)*p.dir,dy=Math.abs((e.y-(e.type==='bat'?25:e.type==='boss'?100:65))-(p.y-65));
-      if(e.hp>0&&e.lastHit!==p.attackId&&dx>-30&&dx<range+25&&dy<(e.type==='boss'?120:p.combo===2?120:94)){
-        e.lastHit=p.attackId;this.hit(e,Math.round(this.damage*(p.combo===2?1.5:1)),p.dir,false,p.combo===2);this.freeze=p.combo===2?.055:.028;this.emit('shake',{amount:p.combo===2?4:2});this.emit('haptic',{kind:'light'});
-      }
+    const p=this.player;if(p.attack<=0)return;p.attack=Math.max(0,p.attack-dt);
+    const whip=whipForPlayer(p,this.progress.relic);if(!whip?.active)return;
+    for(const e of this.enemies){if(e.hp>0&&e.lastHit!==p.attackId&&whipHitsBox(whip,enemyHurtBox(e))){
+      e.lastHit=p.attackId;this.hit(e,Math.round(this.damage*(p.combo===2?1.5:1)),p.dir,false,p.combo===2);this.freeze=p.combo===2?.055:.028;this.emit('shake',{amount:p.combo===2?4:2});this.emit('haptic',{kind:'light'});
+    }}
+    for(const b of this.breakables)if(!b.broken&&whipHitsBox(whip,{x:b.x-18,y:b.y-140,w:36,h:140})){
+      b.broken=true;this.progress.gold+=8;this.player.mp=Math.min(this.maxMp,this.player.mp+6);this.spark(b.x,b.y-70,16,'#d7af68');this.effects.push({type:'number',x:b.x,y:b.y-105,value:'+8',life:.8});this.emit('sound',{name:'break'});
     }
-    for(const b of this.breakables){const dx=(b.x-p.x)*p.dir;if(!b.broken&&dx> -20&&dx<range&&Math.abs(b.y-p.y)<110){b.broken=true;this.progress.gold+=8;this.player.mp=Math.min(this.maxMp,this.player.mp+6);this.spark(b.x,b.y-70,16,'#d7af68');this.effects.push({type:'number',x:b.x,y:b.y-105,value:'+8',life:.8});this.emit('sound',{name:'break'});}}
   }
+
   updateShots(dt){
     const p=this.player;
     for(const s of this.shots){s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
@@ -205,7 +206,7 @@ export class GameModel{
     else{const d=a.door;this.enter(d.to,d.returnX||180,d.returnY||FLOOR);}
   }
   updateEnemy(e,dt){
-    const p=this.player;e.anim+=dt;e.flash=Math.max(0,e.flash-dt);if(e.hp<=0){e.dead=Math.max(0,e.dead-dt);return;}e.cool-=dt;e.timer-=dt;
+    const p=this.player;e.moving=false;e.anim+=dt;e.flash=Math.max(0,e.flash-dt);if(e.hp<=0){e.dead=Math.max(0,e.dead-dt);return;}e.cool-=dt;e.timer-=dt;
     const dx=p.x-e.x,dy=p.y-e.y,dist=Math.abs(dx);if(dist>1100)return;
     if(e.type==='boss'){if(this.bossActive)this.updateBoss(e,dt);return;}
     if(e.state==='stun'){if(e.timer<=0){e.state='idle';e.cool=.4;}return;}

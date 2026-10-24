@@ -1,4 +1,4 @@
-import {validateSave} from './model.mjs?v=2.1.0';
+import {validateSave} from './model.mjs?v=2.2.0';
 export const SAVE_KEY='nocturne-eclipse-save-v2',BACKUP_KEY=SAVE_KEY+'-backup',SETTINGS_KEY='nocturne-eclipse-settings-v2';
 const LEGACY_KEY='nocturne-eclipse-save-v1';
 export const DEFAULT_SETTINGS={difficulty:'standard',music:.6,effects:.8,shake:true,reducedMotion:false,contrast:false,quality:'auto',touchScale:1,touchOpacity:.72,leftHanded:false};
