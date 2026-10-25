@@ -11,7 +11,7 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-180.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./ink.css?v=1.0.0">
+  <link rel="stylesheet" href="./ink.css?v=1.1.0">
   <script>if(['terminal.local','localhost','127.0.0.1'].includes(location.hostname)&&'serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(r=>Promise.all(r.map(x=>x.unregister()))).catch(()=>{});</script>
 </head>
 <body>
@@ -26,12 +26,13 @@
       <p class="intro">墨の島、紙の舟。<br>あなたの指先から、航路が生まれる。</p>
       <div class="title-actions">
         <button id="begin" class="primary" disabled><span id="beginText">海をひらいています</span><span aria-hidden="true">↗</span></button>
-        <div class="sub-actions"><button id="logbook" class="text-button">航海帖をひらく <span aria-hidden="true">＋</span></button><button id="how" class="text-button">遊び方</button></div>
+        <div class="sub-actions"><button id="logbook" class="text-button">航海帖 <span aria-hidden="true">＋</span></button><button id="gallery" class="text-button">作品集</button><button id="how" class="text-button">遊び方</button></div>
       </div>
       <p id="continueNote" class="continue-note">八つの海を、ひとつずつ。</p>
     </div>
-    <footer class="title-footer"><span>01 — 08 <i></i> A QUIET ADVENTURE</span><span>引いて、放す。</span></footer>
+    <footer class="title-footer"><span>01 — 08 <i></i> THE LIVING PAPER · v1.1</span><span>舟で描き、墨を金に。</span></footer>
   </section>
+  <nav id="artUI" hidden aria-label="航路作品の操作"><button id="backFromArt" class="text-button">← 航海へ戻る</button><button id="pinArt" class="text-button">作品集に記録</button><button id="saveArt" class="art-save">画像を保存 ↗</button></nav>
   <section id="gameUI" hidden aria-label="航海の操作">
     <header class="game-header">
       <button id="chapterButton" class="chapter-button" aria-label="航海帖を開く"><span id="chapterNumber">01</span><span class="chapter-divider"></span><span><span id="chapterName">はじまりの波</span><small id="chapterEnglish">A FIRST RIPPLE</small></span></button>
@@ -43,9 +44,10 @@
   </section>
   <p id="toast" role="status" aria-live="polite" hidden></p>
   <dialog id="panel" aria-labelledby="panelTitle"><div id="panelContent"></div></dialog>
+  <dialog id="exportPanel" aria-labelledby="exportHeading"><div class="export-sheet"><div class="panel-heading"><h2 id="exportHeading">航路を一枚に。</h2><button id="closeExport" class="close-button" aria-label="画像の保存画面を閉じる">×</button></div><img id="exportPreview" alt="保存する航路作品"><div class="export-actions"><a id="downloadArt" class="art-save" download="margin-tide.png">PNGを保存 ↗</a><button id="shareArt" class="text-button" hidden>共有する</button><p>iPhoneでは画像を長押しして<br>保存することもできます。</p></div></div></dialog>
   <div id="live" class="sr-only" aria-live="polite"></div>
   <noscript>余白航路を遊ぶには、ブラウザーのJavaScriptを有効にしてください。</noscript>
 </main>
-<script type="module" src="./app.mjs?v=1.0.0"></script>
+<script type="module" src="./app.mjs?v=1.1.0"></script>
 </body>
 </html>
