@@ -256,14 +256,28 @@ function paintSector(c,w,h,cam,t,sector,reduce){
   }
   c.restore();
 }
+// One reusable buffer allows a true crossfade despite per-layer alpha in starfields.
+// Only used for 3.8 seconds around scene transitions; not allocated in steady play.
+let transitionCanvas=null;
 export function paintStageBackdrop(c,w,h,cam,t,stageTime=t,reduce=false){
   const sector=stageIndex(stageTime),blend=sector?smooth((stageTime-sector*SECTOR_SECONDS)/3.8):1;
   c.save();
-  if(blend<1){
+  if(blend<1 && typeof document!=='undefined'){
     paintSector(c,w,h,cam,t,sector-1,reduce);
-    c.globalAlpha=blend;
+    const bw=Math.ceil(w),bh=Math.ceil(h);
+    if(!transitionCanvas)transitionCanvas=document.createElement('canvas');
+    if(transitionCanvas.width!==bw)transitionCanvas.width=bw;
+    if(transitionCanvas.height!==bh)transitionCanvas.height=bh;
+    const layer=transitionCanvas.getContext('2d',{alpha:false});
+    if(layer){
+      paintSector(layer,bw,bh,cam,t,sector,reduce);
+      c.globalAlpha=blend;
+      c.drawImage(transitionCanvas,0,0,w,h);
+      c.globalAlpha=1;
+    }else paintSector(c,w,h,cam,t,sector,reduce);
+  }else{
+    paintSector(c,w,h,cam,t,sector,reduce);
   }
-  paintSector(c,w,h,cam,t,sector,reduce);
   c.restore();
   const vignette=c.createRadialGradient(w*.52,h*.48,h*.11,w*.52,h*.48,Math.max(w,h)*.81);
   vignette.addColorStop(0,'#03061000');vignette.addColorStop(1,'#03061084');
