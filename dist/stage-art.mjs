@@ -46,11 +46,12 @@ function ambience(c,w,h,cam,t,theme){
   starfield(c,w,h,cam,t,theme);
 }
 function repeatLandmarks(c,w,h,cam,spacing,velocity,vertical,draw){
-  const ox=cam.x*velocity,oy=cam.y*vertical;
+  const ox=cam.x*velocity,oy=cam.y*vertical,cellY=h*.83;
+  const rowStart=Math.floor(oy/cellY);
   for(let ix=Math.floor(ox/spacing)-1;ix<=Math.floor((ox+w)/spacing)+1;ix++){
     const x=ix*spacing-ox;
-    for(let row=-1;row<=2;row++) {
-      const y=row*h*.83-((oy%(h*.83))+(h*.83))%(h*.83);
+    for(let row=rowStart-1;row<=rowStart+2;row++) {
+      const y=row*cellY-oy;
       draw(x+rnd(ix,row)*spacing*.32,y,ix*7+row*11,ix,row);
     }
   }
