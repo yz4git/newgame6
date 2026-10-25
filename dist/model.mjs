@@ -1,4 +1,4 @@
-import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.0.1';
+import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.1.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -14,16 +14,16 @@ export class Flight{
   this.chassis=CHASSIS[options.chassis]?options.chassis:'lancer';this.heat=options.heat===2?2:1;
   this.meta=Object.fromEntries(Object.entries(META).map(([k,u])=>[k,clamp(Math.floor(Number(options.meta?.[k])||0),0,u.max)]));
   const hp=CHASSIS[this.chassis].hp+this.meta.hull*8;
-  this.p={x:0,y:0,vy:0,pitch:0,r:15,hp,maxHP:hp,hurt:0,flap:0,shield:0};
+  this.p={x:0,y:0,vy:0,pitch:0,r:12.5,hp,maxHP:hp,hurt:0,flap:0,shield:0};
   this.view={w:1100,h:640};this.camera={x:-319,y:-320};
   this.skills=Object.fromEntries(Object.keys(UPGRADES).map(k=>[k,0]));this.skills[CHASSIS[this.chassis].weapon]=1;
   this.evolutions=Object.fromEntries(Object.keys(EVOLUTIONS).map(k=>[k,false]));
-  this.enemies=[];this.bullets=[];this.hostiles=[];this.gems=[];this.rocks=[];this.effects=[];this.events=[];
+  this.enemies=[];this.bullets=[];this.hostiles=[];this.gems=[];this.rocks=[];this.gates=[];this.gateDodges=0;this.effects=[];this.events=[];
   this.kills=0;this.eliteKills=0;this.level=1;this.xp=0;this.xpNeed=7;this.totalXP=0;this.choices=[];this.pendingChests=0;this.loot=null;
   this.rerolls=2+this.meta.analysis;this.revives=this.meta.rescue;this.revivesUsed=0;this.chestCount=0;
   this.damageStats={star:0,missile:0,beam:0,orbit:0,storm:0,drone:0};this.damageTaken=0;this.lastDamage='';
   this.timers={star:.1,missile:1,beam:1.5,storm:2,drone:.5,repair:8,shield:0};
-  this.spawnTimer=.65;this.gateTimer=9;this.flapTimer=0;this.id=0;this.nextSwarm=18;this.nextElite=32;
+  this.spawnTimer=.65;this.gateTimer=9;this.gateIndex=0;this.flapTimer=0;this.id=0;this.nextSwarm=18;this.nextElite=32;
   this.boss=null;this.bossSpawned=false;this.maxAltitude=0;this.currentPhase=0;
   this.spawn('wisp',370,-55);
  }
@@ -53,12 +53,17 @@ export class Flight{
    if(this.rand()<.23){x=p.x+v.w*(.25+this.rand()*.4);y=p.y+(this.rand()<.5?-1:1)*(v.h*.6+65);}
    this.spawn(type,x,y);
   }
-  this.spawnTimer+=Math.max(.34,.86-this.time/330)/(this.heat===2?1.12:1);
+  this.spawnTimer+=Math.max(.34,.82-this.time/330)/(this.heat===2?1.12:1);
  }
  spawnGate(){
-  const x=this.p.x+this.view.w*.8+180,center=this.p.y+(this.rand()-.5)*130,gap=Math.max(225,290-this.time*.32);
-  for(const sign of [-1,1])this.rocks.push({id:++this.id,x,y:center+sign*(gap/2+210),rx:48+this.rand()*12,ry:210,phase:this.rand()*10});
-  this.gateTimer+=9.5;
+  const index=this.gateIndex++,x=this.p.x+this.view.w*.8+180;
+  const gap=clamp(this.view.h*.35-this.time*.12,238,300);
+  const direction=index%2===0?-1:1;
+  const center=this.p.y+direction*this.view.h*.17+(this.rand()-.5)*this.view.h*.08;
+  const gateId=++this.id,theme=Math.min(3,Math.floor(this.time/40)),variant=Math.floor(this.rand()*3);
+  this.gates.push({id:gateId,x,center,gap,theme,variant,failed:false,passed:false});
+  for(const side of [-1,1]){const ry=205+this.rand()*24;this.rocks.push({id:++this.id,gateId,x,y:center+side*(gap/2+ry+16),rx:58+this.rand()*15,ry,phase:this.rand()*10,side,center,gap,theme,variant});}
+  this.gateTimer+=8.8;
  }
  damage(amount,source='敵の攻撃'){
   const p=this.p;if(p.hurt>0||this.status!=='playing')return;
@@ -172,7 +177,7 @@ export class Flight{
  tick(dt=STEP){
   if(this.status!=='playing')return;dt=Math.min(.04,dt);this.time+=dt;const p=this.p;
   this.flapTimer=Math.max(0,this.flapTimer-dt);p.flap=Math.max(0,p.flap-dt*3.5);p.hurt=Math.max(0,p.hurt-dt);
-  p.vy=Math.min(305,p.vy+510*dt);const targetPitch=clamp(p.vy*.00056,-.145,.165);p.pitch+=(targetPitch-p.pitch)*(1-Math.exp(-9*dt));p.y+=p.vy*dt;p.x+=(124.2+Math.min(23,this.time/9*1.15))*dt;
+  p.vy=Math.min(305,p.vy+510*dt);const targetPitch=clamp(p.vy*.00056,-.145,.165);p.pitch+=(targetPitch-p.pitch)*(1-Math.exp(-9*dt));p.y+=p.vy*dt;p.x+=(134.1+Math.min(24.8,this.time/9*1.24))*dt;
   this.maxAltitude=Math.max(this.maxAltitude,-p.y);this.camera.x=p.x-this.view.w*.29;const goal=p.y-this.view.h*.5+clamp(p.vy*.15,-45,45);this.camera.y+=(goal-this.camera.y)*(1-Math.exp(-3.8*dt));
   const phase=Math.min(3,Math.floor(this.time/40));if(phase!==this.currentPhase){this.currentPhase=phase;this.emit('phase',{phase});}
   this.spawnTimer-=dt;if(this.spawnTimer<=0){if(!this.bossSpawned)this.spawnWave();else{if(this.enemies.filter(e=>e.type!=='boss').length<14)this.spawn('wisp',p.x+this.view.w*.72,p.y+(this.rand()-.5)*500);this.spawnTimer=1.2;}}
@@ -198,7 +203,9 @@ export class Flight{
    }
   }
   for(const b of this.hostiles){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(this.evolutions.aegis&&Math.hypot(b.x-p.x,b.y-p.y)<95){b.life=0;continue;}if(Math.hypot(b.x-p.x,b.y-p.y)<p.r+b.r){this.damage(b.damage,b.source);b.life=0;}}
-  for(const r of this.rocks){const qx=(p.x-r.x)/(r.rx+p.r),qy=(p.y-r.y)/(r.ry+p.r);if(qx*qx+qy*qy<1){this.damage(23,'浮遊装甲への接触');p.vy+=(p.y<r.y?-1:1)*dt*350;}}
+  for(const r of this.rocks){const qx=(p.x-r.x)/(r.rx+p.r),qy=(p.y-r.y)/(r.ry+p.r);if(qx*qx+qy*qy<1){const gate=this.gates.find(g=>g.id===r.gateId);if(gate)gate.failed=true;this.damage(23,'浮遊装甲への接触');p.vy+=(p.y<r.y?-1:1)*dt*350;}}
+  for(const gate of this.gates)if(!gate.passed&&p.x>gate.x+95){gate.passed=true;if(!gate.failed&&Math.abs(p.y-gate.center)<gate.gap/2){this.gateDodges++;this.collect(2);this.addEffect('gateClear',p.x,p.y,{life:.8,radius:118,color:'#8be8d4'});this.emit('gatePass',{count:this.gateDodges});}}
+  this.gates=this.gates.filter(g=>p.x<g.x+this.view.w*.75);
   for(const g of this.gems){
    g.age+=dt;const d=Math.hypot(g.x-p.x,g.y-p.y),range=150+this.skills.magnet*55+this.meta.recovery*12+(g.kind==='chest'?70:0);
    if(d<range||g.x<p.x-this.view.w*.22)g.pull=true;

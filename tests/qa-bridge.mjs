@@ -1,13 +1,14 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-2.0.1';
-import { Flight } from './model.mjs?v=lumen-2.0.1';
+import { start } from './app.mjs?v=lumen-2.1.0';
+import { Flight } from './model.mjs?v=lumen-2.1.0';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
   if (e.origin !== location.origin || !e.data.wingQA) return;
   if(e.data.wingQA==='reset'){try{localStorage.removeItem('lumen-wing-v1');}catch{}location.reload();return;}
   const f = new Flight(51); f.setView(innerWidth / innerHeight * (innerWidth < innerHeight ? 840 : 640), innerWidth < innerHeight ? 840 : 640, true);
-  if(e.data.wingQA==='evolve'){f.skills.missile=4;f.skills.split=2;f.openChest();}
+  if(['gate','gate2','gate3'].includes(e.data.wingQA)){f.time=e.data.wingQA==='gate'?74:e.data.wingQA==='gate2'?94:134;f.nextSwarm=200;f.nextElite=200;f.enemies=[];f.spawnGate();const gate=f.gates.at(-1);gate.x=f.p.x+f.view.w*.65;f.p.y=gate.center;for(const r of f.rocks.filter(r=>r.gateId===gate.id)){r.x=gate.x;r.y=gate.center+r.side*(gate.gap/2+r.ry+16);}f.setView(f.view.w,f.view.h,true);}
+  else if(e.data.wingQA==='evolve'){f.skills.missile=4;f.skills.split=2;f.openChest();}
   else if (e.data.wingQA === 'upgrade') { f.collect(7); }
   else if (['boss','won'].includes(e.data.wingQA)) { f.time = 149.95; f.nextSwarm = 200; f.nextElite=200; Object.assign(f.skills,{power:4,tempo:3,split:3,orbit:3,storm:3,magnet:2,heart:2,missile:4,beam:3,drone:2,armor:2,shield:2}); f.p.hp=140; f.p.maxHP=140; f.level=16; f.xpNeed=82; }
   else {

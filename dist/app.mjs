@@ -1,9 +1,9 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.0.1';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.0.1';
-import {Painter} from './render.mjs?v=lumen-2.0.1';
-import {Sound} from './audio.mjs?v=lumen-2.0.1';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.0.1';
-import {installTouchGuards} from './touch.mjs?v=lumen-2.0.1';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.1.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.1.0';
+import {Painter} from './render.mjs?v=lumen-2.1.0';
+import {Sound} from './audio.mjs?v=lumen-2.1.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.1.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-2.1.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
@@ -60,7 +60,7 @@ function finish(){
  $('resultEyebrow').textContent=won?'ECLIPSE DESTROYED / RETURN TO BASE':'RECOVER / REBUILD / RETURN';$('resultTitle').textContent=won?'夜を越えた、その翼。':'再起動は、ここから。';
  $('resultTime').textContent=clock(f.time);$('resultKills').textContent=f.kills;$('resultLevel').textContent=f.level;
  const advice=f.lastDamage.includes('砲撃')?'予告線の後に高度を変えるか、シールドで防御を。':f.lastDamage.includes('接触')?'短い噴射で間合いを作り、衛星や装甲を重ねよう。':'回収したパーツで恒久強化。別の機体と進化構成も試せます。';
- $('resultCause').textContent=won?'星喰いを撃破。侵攻Ⅱで次の限界へ。':`${f.lastDamage||'機体損失'} / ${advice}`;
+ $('resultCause').textContent=`${won?'星喰いを撃破。侵攻Ⅱで次の限界へ。':`${f.lastDamage||'機体損失'} / ${advice}`}${f.gateDodges?` / ゲート回避 ${f.gateDodges}`:''}`;
  $('resultBuild').textContent=weaponKeys.filter(k=>k==='star'||f.skills[k]).map(k=>{const id=evolutionFor(k);return f.evolutions[id]?`${EVOLUTIONS[id].icon} ${EVOLUTIONS[id].name}`:`${weaponIcons[k]} LV.${k==='star'?1+f.skills.power:f.skills[k]}`;}).join('　');
  const rows=Object.entries(f.damageStats).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]).slice(0,3),total=Object.values(f.damageStats).reduce((s,n)=>s+n,0)||1;
  $('damageSummary').innerHTML=rows.map(([key,n])=>`<div class="damage-row"><span>${weaponName(key)}</span><span>${Math.round(n/total*100)}% / ${Math.round(n).toLocaleString()} DMG</span></div>`).join('');
@@ -96,6 +96,7 @@ function handleEvents(){
   else if(e.type==='bossphase')toast(e.phase===2?'星喰い / 全砲門解放':'星喰い / 反撃フェーズ',2.3);
   else if(e.type==='eliteIncoming')toast('敵重装母艦 / 補給箱を狙え',2.7);
   else if(e.type==='phase')toast(['','迎撃網が拡大 / 機影増加','重武装宙域 / 敵群接近','最終防衛線 / 火力を集中'][e.phase],2.6);
+  else if(e.type==='gatePass')toast(`障害ゲート突破 / EXP +2 / ${e.count}回`,1.5);
   else if(e.type==='heal')toast(`機体を修復 / +${e.amount} HP`,1.5);
   else if(e.type==='revive')toast('REBOOT / コア再起動',2.6);
   else if(e.type==='upgrade')toast(`${UPGRADES[e.key].name} / LV.${f.skills[e.key]}`,1.6);
