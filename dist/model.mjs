@@ -1,4 +1,4 @@
-import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.1.0';
+import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.2.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -60,7 +60,7 @@ export class Flight{
   const gap=clamp(this.view.h*.35-this.time*.12,238,300);
   const direction=index%2===0?-1:1;
   const center=this.p.y+direction*this.view.h*.17+(this.rand()-.5)*this.view.h*.08;
-  const gateId=++this.id,theme=Math.min(3,Math.floor(this.time/40)),variant=Math.floor(this.rand()*3);
+  const gateId=++this.id,theme=Math.min(4,Math.floor(this.time/30)),variant=Math.floor(this.rand()*3);
   this.gates.push({id:gateId,x,center,gap,theme,variant,failed:false,passed:false});
   for(const side of [-1,1]){const ry=205+this.rand()*24;this.rocks.push({id:++this.id,gateId,x,y:center+side*(gap/2+ry+16),rx:58+this.rand()*15,ry,phase:this.rand()*10,side,center,gap,theme,variant});}
   this.gateTimer+=8.8;
@@ -179,7 +179,7 @@ export class Flight{
   this.flapTimer=Math.max(0,this.flapTimer-dt);p.flap=Math.max(0,p.flap-dt*3.5);p.hurt=Math.max(0,p.hurt-dt);
   p.vy=Math.min(305,p.vy+510*dt);const targetPitch=clamp(p.vy*.00056,-.145,.165);p.pitch+=(targetPitch-p.pitch)*(1-Math.exp(-9*dt));p.y+=p.vy*dt;p.x+=(134.1+Math.min(24.8,this.time/9*1.24))*dt;
   this.maxAltitude=Math.max(this.maxAltitude,-p.y);this.camera.x=p.x-this.view.w*.29;const goal=p.y-this.view.h*.5+clamp(p.vy*.15,-45,45);this.camera.y+=(goal-this.camera.y)*(1-Math.exp(-3.8*dt));
-  const phase=Math.min(3,Math.floor(this.time/40));if(phase!==this.currentPhase){this.currentPhase=phase;this.emit('phase',{phase});}
+  const phase=Math.min(4,Math.floor(this.time/30));if(phase!==this.currentPhase){this.currentPhase=phase;this.emit('phase',{phase});}
   this.spawnTimer-=dt;if(this.spawnTimer<=0){if(!this.bossSpawned)this.spawnWave();else{if(this.enemies.filter(e=>e.type!=='boss').length<14)this.spawn('wisp',p.x+this.view.w*.72,p.y+(this.rand()-.5)*500);this.spawnTimer=1.2;}}
   this.gateTimer-=dt;if(this.gateTimer<=0&&!this.bossSpawned)this.spawnGate();
   if(this.time>=this.nextSwarm&&this.time<145){for(let i=0;i<8+Math.floor(this.time/22);i++)this.spawn(i%4===0&&this.time>40?'ray':'wisp',p.x+this.view.w*.7+i*20,p.y+Math.sin(i*.65)*180);this.nextSwarm+=22;this.emit('wave');}

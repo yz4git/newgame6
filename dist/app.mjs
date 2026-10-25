@@ -1,9 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.1.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.1.0';
-import {Painter} from './render.mjs?v=lumen-2.1.0';
-import {Sound} from './audio.mjs?v=lumen-2.1.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.1.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-2.1.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.2.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.2.0';
+import {Painter} from './render.mjs?v=lumen-2.2.0';
+import {STAGES,stageIndex} from './stage-art.mjs?v=lumen-2.2.0';
+import {Sound} from './audio.mjs?v=lumen-2.2.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.2.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-2.2.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
@@ -95,7 +96,7 @@ function handleEvents(){
   if(e.type==='boss')toast('THE ECLIPSE / 星喰い、来襲',3.6);
   else if(e.type==='bossphase')toast(e.phase===2?'星喰い / 全砲門解放':'星喰い / 反撃フェーズ',2.3);
   else if(e.type==='eliteIncoming')toast('敵重装母艦 / 補給箱を狙え',2.7);
-  else if(e.type==='phase')toast(['','迎撃網が拡大 / 機影増加','重武装宙域 / 敵群接近','最終防衛線 / 火力を集中'][e.phase],2.6);
+  else if(e.type==='phase')toast('SECTOR 0'+(e.phase+1)+' / '+STAGES[e.phase].name+' / '+STAGES[e.phase].ja,3.5);
   else if(e.type==='gatePass')toast(`障害ゲート突破 / EXP +2 / ${e.count}回`,1.5);
   else if(e.type==='heal')toast(`機体を修復 / +${e.amount} HP`,1.5);
   else if(e.type==='revive')toast('REBOOT / コア再起動',2.6);
@@ -106,7 +107,8 @@ function handleEvents(){
 function updateHUD(){
  $('sky').dataset.worldY=f.p.y.toFixed(1);$('sky').dataset.velocity=f.p.vy.toFixed(1);$('sky').dataset.cameraY=f.camera.y.toFixed(1);$('sky').dataset.frameMs=rawFrame.toFixed(1);$('sky').dataset.renderMs=renderCost.toFixed(1);
  $('hpText').textContent=`${Math.ceil(f.p.hp)} / ${f.p.maxHP}`;$('hpFill').style.width=`${f.p.hp/f.p.maxHP*100}%`;$('level').textContent=`LV. ${f.level}`;$('kills').textContent=f.kills;$('xpFill').style.width=`${clamp(f.xp/f.xpNeed*100,0,100)}%`;
- $('timer').textContent=f.bossSpawned?clock(f.time):clock(Math.max(0,150-f.time));$('phase').textContent=f.bossSpawned?'星喰いを倒せ':`侵攻${f.heat===2?'Ⅱ':'Ⅰ'} / 星喰い到来まで`;
+ $('sector').textContent=String(stageIndex(f.time)+1).padStart(2,'0')+' / '+STAGES[stageIndex(f.time)].name;
+  $('timer').textContent=f.bossSpawned?clock(f.time):clock(Math.max(0,150-f.time));$('phase').textContent=f.bossSpawned?'星喰いを倒せ':`侵攻${f.heat===2?'Ⅱ':'Ⅰ'} / 星喰い到来まで`;
  $('altitude').textContent=`${f.p.y<=0?'+':'−'}${Math.abs(Math.round(f.p.y))} m`;$('bossHUD').hidden=!f.bossSpawned||!f.boss||f.boss.hp<=0;if(f.boss)$('bossFill').style.width=`${Math.max(0,f.boss.hp/f.boss.maxHP*100)}%`;
  if(f.time>10)$('flightTip').style.opacity='0';if(f.time>toastUntil)$('toast').hidden=true;
  const key=JSON.stringify([f.skills,f.evolutions,f.rerolls]);if(key!==armoryKey){armoryKey=key;$('armory').innerHTML=weaponKeys.map(k=>{const rank=k==='star'?1+f.skills.power:f.skills[k],id=evolutionFor(k),evolved=f.evolutions[id];return `<span class="weapon-slot${!rank?' empty':''}${evolved?' evolved':''}" title="${evolved?EVOLUTIONS[id].name:weaponName(k)}">${evolved?EVOLUTIONS[id].icon:weaponIcons[k]}<b>${evolved?'EX':rank||'−'}</b></span>`;}).join('');$('buildInfo').textContent=`威力 ${Math.round(f.power*100)}% / 装甲 ${f.skills.armor*2+f.meta.armor} / 再抽選 ${f.rerolls}`;}
