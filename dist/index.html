@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10182c"><meta name="description" content="タップで噴射、星海を駆け抜ける。1ボタン飛行と自動攻撃を組み合わせた浮遊サバイバル。">
-  <title>LUMEN WING — 星を継ぐ翼</title><link rel="icon" href="./icon.svg?v=lumen-1.1.0"><link rel="manifest" href="./manifest.webmanifest?v=lumen-1.1.0">
-  <link rel="stylesheet" href="./style.css?v=lumen-1.1.0"><script type="module" src="./app.mjs?v=lumen-1.1.0"></script>
+  <title>LUMEN WING — 星を継ぐ翼</title><link rel="icon" href="./icon.svg?v=lumen-2.0.0"><link rel="manifest" href="./manifest.webmanifest?v=lumen-2.0.0">
+  <link rel="stylesheet" href="./style.css?v=lumen-2.0.0"><script type="module" src="./app.mjs?v=lumen-2.0.0"></script>
 </head>
 <body>
 <main id="game">
   <canvas id="sky" aria-label="上下に広がる夜空を飛ぶゲーム画面"></canvas>
   <section id="titleScreen" class="title-screen">
-    <header class="masthead"><a class="wordmark" href="./" aria-label="Lumen Wing ホーム"><svg viewBox="0 0 48 40" aria-hidden="true"><path d="M43 20 14 7l6 13-6 13 29-13Z M20 20h15 M7 16H2 M7 24H2"/></svg><span>L / W<span class="tiny">FLIGHT NO. 001</span></span></a><div class="edition">ONE CRAFT. A THOUSAND STARS.<span>星を継ぐ翼</span></div><button class="icon-btn sound-toggle" aria-label="サウンドを切り替える" aria-pressed="false">♪<span class="sound-text">SOUND OFF</span></button></header>
-    <div class="hero"><div class="eyebrow"><span class="live-dot"></span> ONE-BUTTON FLIGHT × AUTO SURVIVAL</div><h1>LUMEN<br><span>WING</span><i>星を継ぐ翼</i></h1><p class="hero-copy">ひと押しで、星海を駆ける。<br>星の力を集めて、自分だけの機体へ。</p><div class="start-row"><button id="start" class="primary">飛行をはじめる <span>↗</span></button><button id="howto" class="text-btn">飛び方 <span>＋</span></button></div><p id="best" class="best">FIRST FLIGHT / まだ見ぬ空へ</p></div>
-    <div class="ship-label"><span>01 / LUMEN INTERCEPTOR</span><i>ルーメン01</i><span class="hairline"></span></div>
-    <footer class="title-footer"><div><span class="step-number">01</span><p>タップで上昇<small>離すと落下。空を縫う。</small></p></div><div><span class="step-number">02</span><p>攻撃はオート<small>避けることに、夢中になる。</small></p></div><div><span class="step-number">03</span><p>星を集めて進化<small>夜の主を越えていけ。</small></p></div><span class="version">LUMEN WING / 1.1</span></footer>
+    <header class="masthead"><a class="wordmark" href="./" aria-label="Lumen Wing ホーム"><svg viewBox="0 0 48 40" aria-hidden="true"><path d="M43 20 14 7l6 13-6 13 29-13Z M20 20h15 M7 16H2 M7 24H2"/></svg><span>L / W<span class="tiny">FLIGHT NO. 001</span></span></a><div class="edition">ONE CRAFT. A THOUSAND STARS.<span>星を継ぐ翼</span></div><button id="howto" class="icon-btn" aria-label="飛び方">?</button><button class="icon-btn sound-toggle" aria-label="サウンドを切り替える" aria-pressed="false">♪<span class="sound-text">SOUND OFF</span></button></header>
+    <div class="hero"><div class="eyebrow"><span class="live-dot"></span> ONE BUTTON / SIX WEAPONS / ROGUELITE</div><h1>LUMEN<br><span>WING</span><i>星を継ぐ翼</i></h1><p class="hero-copy">鋼の翼を、限界の先へ。<br>撃ち尽くし、持ち帰り、また強くなる。</p><div class="start-row"><button id="start" class="primary" disabled>飛行をはじめる <span>↗</span></button><button id="hangar" class="text-btn">ハンガー <span>＋</span></button></div><p id="best" class="best">FIRST FLIGHT / まだ見ぬ空へ</p><div class="sortie-readout"><span id="titleCraft">LANCER</span><span id="titleCredits">PARTS 0</span><span id="assetStatus">機体を展開中…</span></div></div>
+    <div class="ship-label"><span>01 / ARSENAL FRAME</span><i id="shipLabel">LANCER / ランサー</i><span class="hairline"></span></div>
+    <footer class="title-footer"><div><span class="step-number">01</span><p>タップで上昇<small>離すと落下。空を縫う。</small></p></div><div><span class="step-number">02</span><p>攻撃はオート<small>避けることに、夢中になる。</small></p></div><div><span class="step-number">03</span><p>資源で再出撃<small>兵装を進化させ、限界へ。</small></p></div><span class="version">LUMEN WING / 2.0</span></footer>
   </section>
   <section id="hud" class="hud" hidden aria-label="飛行状況">
     <div class="xp-track"><div id="xpFill"></div></div>
@@ -21,12 +21,37 @@
     <div id="bossHUD" class="boss-hud" hidden><div><span>THE ECLIPSE</span><b>星喰い</b></div><div class="boss-track"><div id="bossFill"></div></div></div>
     <div id="toast" class="toast" hidden aria-live="polite"></div>
     <div id="flightTip" class="flight-tip"><span class="tap-glyph">⌃</span><strong>タップ / Space で上昇</strong><span>離すと落下 · 攻撃はオート · 長押しもOK</span></div>
-    <div class="hud-bottom"><div id="armory" class="armory"><span>✦ <b>1</b></span></div><div class="altitude"><small>ALTITUDE</small><span id="altitude">+0 m</span></div></div>
+    <div class="hud-bottom"><div><div id="armory" class="armory"></div><div id="buildInfo" class="build-info"></div></div><div class="altitude"><small>ALTITUDE</small><span id="altitude">+0 m</span></div></div>
     <button id="rise" class="rise-btn" aria-label="上昇：押すと噴射、長押しで連続上昇"><span>⌃</span>RISE</button>
   </section>
-  <section id="upgradeScreen" class="overlay upgrade-screen" hidden aria-labelledby="upgradeTitle"><div class="modal upgrade-modal"><div class="eyebrow">A NEW CONSTELLATION</div><h2 id="upgradeTitle">機体に、新たな光を。</h2><p class="modal-copy">成長をひとつ選んで、ふたたび空へ。</p><div id="choices" class="choices"></div><div class="modal-foot"><span id="upgradeLevel">LEVEL 02</span><span>選択中は時間が止まります</span></div></div></section>
-  <section id="pauseScreen" class="overlay" hidden aria-labelledby="pauseTitle"><div class="modal compact"><div class="eyebrow">DRIFT / STANDBY</div><h2 id="pauseTitle">ひと息、空の途中で。</h2><p class="modal-copy">タップで上昇、離すと落下。<br>長押しで連続上昇。攻撃と経験値回収はオート。</p><button id="resume" class="primary">飛行を再開 <span>↗</span></button><button id="quit" class="text-btn">タイトルに戻る</button><p class="keyboard-note">Space / ↑ / W で上昇 · P / Esc で一時停止</p></div></section>
-  <section id="resultScreen" class="overlay result-screen" hidden aria-labelledby="resultTitle"><div class="modal result-modal"><div id="resultEyebrow" class="eyebrow">FLIGHT RECORDED</div><div id="resultSeal" class="result-seal">✧</div><h2 id="resultTitle">光は、次の航路へ。</h2><p id="resultCopy" class="modal-copy">星を集め、また空へ。</p><div class="result-stats"><div><small>飛行時間</small><strong id="resultTime">00:00</strong></div><div><small>撃破数</small><strong id="resultKills">0</strong></div><div><small>到達レベル</small><strong id="resultLevel">1</strong></div></div><div id="resultBuild" class="result-build"></div><button id="retry" class="primary">もう一度、空へ <span>↗</span></button><button id="resultHome" class="text-btn">タイトルに戻る</button></div></section>
-  <section id="guideScreen" class="overlay" hidden aria-labelledby="guideTitle"><div class="modal guide-modal"><div class="eyebrow">FIELD GUIDE / 01</div><h2 id="guideTitle">ひとつの操作。<br>無数の飛び方。</h2><div class="guide-grid"><div><b>01 / FLY</b><h3>タップでブースト</h3><p>自動で前進。タップすると上昇し、離すと重力で下降します。長押しでも連続上昇。空は上下にも続きます。</p></div><div><b>02 / SURVIVE</b><h3>避けることに集中</h3><p>近くの敵へ星弾を自動発射。ピンクの敵弾と浮遊岩を避けて。体力がなくなるまで飛べます。</p></div><div><b>03 / EVOLVE</b><h3>灯を集め、機体を強化</h3><p>緑の灯は経験値。近づくと吸い寄せられます。成長するたび3つの力から選択。2分30秒で現れる星喰いを倒せばクリア。</p></div></div><button id="guideClose" class="primary">準備できた <span>↗</span></button><p class="keyboard-note">キーボード：Space / ↑ / W · 選択：1 / 2 / 3 · 停止：P / Esc</p></div></section>
+  <section id="upgradeScreen" class="overlay upgrade-screen" hidden aria-labelledby="upgradeTitle"><div class="modal upgrade-modal"><div class="eyebrow">A NEW CONSTELLATION</div><h2 id="upgradeTitle">機体に、新たな光を。</h2><p class="modal-copy">成長をひとつ選んで、ふたたび空へ。</p><div id="choices" class="choices"></div><div class="modal-foot"><span id="upgradeLevel">LEVEL 02</span><button id="reroll" class="reroll-btn">再抽選 ×2</button><span>選択中は時間停止</span></div></div></section>
+  <section id="pauseScreen" class="overlay" hidden aria-labelledby="pauseTitle"><div class="modal compact"><div class="eyebrow">DRIFT / STANDBY</div><h2 id="pauseTitle">ひと息、空の途中で。</h2><p class="modal-copy">タップで上昇、離すと落下。<br>長押しで連続上昇。攻撃と経験値回収はオート。</p><button id="resume" class="primary">飛行を再開 <span>↗</span></button><button id="quit" class="text-btn">撤退してパーツを回収</button><div id="pauseBuild" class="pause-build"></div><p class="keyboard-note">Space / ↑ / W で上昇 · P / Esc で一時停止</p></div></section>
+  <section id="resultScreen" class="overlay result-screen" hidden aria-labelledby="resultTitle">
+    <div class="modal result-modal">
+      <div id="resultEyebrow" class="eyebrow">RECOVER / REBUILD / RETURN</div><h2 id="resultTitle">再起動は、ここから。</h2>
+      <div class="result-layout"><div>
+        <div class="result-stats"><div><small>飛行時間</small><strong id="resultTime">00:00</strong></div><div><small>撃破数</small><strong id="resultKills">0</strong></div><div><small>到達レベル</small><strong id="resultLevel">1</strong></div></div>
+        <p id="resultCause" class="result-cause"></p><div id="resultBuild" class="result-build"></div><div id="damageSummary" class="damage-summary"></div>
+      </div><div class="debrief-progress">
+        <div class="reward-line"><span>回収パーツ</span><strong id="resultReward">+0</strong><small id="resultWallet">所持 0</small></div>
+        <div id="resultUnlocks" class="result-unlocks"></div><div id="nextGoal" class="next-goal"></div>
+      </div></div>
+      <div class="result-buttons"><button id="retry" class="primary">再出撃 <span>↗</span></button><button id="resultHangar" class="secondary">機体選択・恒久強化 <span>＋</span></button><button id="resultHome" class="text-btn">タイトル</button></div>
+    </div>
+  </section>
+  <section id="lootScreen" class="overlay loot-screen" hidden aria-labelledby="lootTitle"><div class="modal compact"><div id="lootEyebrow" class="eyebrow">EVOLUTION / LIMIT BREAK</div><div id="lootIcon" class="loot-icon">✺</div><h2 id="lootTitle">兵装進化</h2><p id="lootDescription" class="modal-copy"></p><button id="lootContinue" class="primary">展開して続行 <span>↗</span></button></div></section>
+  <section id="hangarScreen" class="overlay hangar-screen" hidden aria-labelledby="hangarTitle"><div class="hangar-panel">
+    <header class="hangar-toolbar"><div><div class="eyebrow">ARSENAL / PERSISTENT SYSTEMS</div><h2 id="hangarTitle">次の一機を、つくる。</h2></div><div class="hangar-balance"><small>RECOVERED PARTS</small><strong id="hangarCredits">0</strong></div><button id="hangarClose" class="icon-btn" aria-label="ハンガーを閉じる">×</button></header>
+    <div class="hangar-scroll">
+      <div class="section-label"><span>01 / 機体を選ぶ</span><span>機体ごとに初期兵装が変わります</span></div><div id="chassisList" class="chassis-list"></div>
+      <div class="difficulty-row"><span>侵攻レベル</span><button id="heatOne" aria-pressed="true">Ⅰ / 外縁侵攻</button><button id="heatTwo" aria-pressed="false">Ⅱ / 深層侵攻 · 報酬1.4倍</button><span id="heatLock"></span></div>
+      <div class="section-label"><span>02 / 恒久強化</span><button id="refund" class="text-btn">強化を振り直す（全額返還）</button></div><div id="workshop" class="workshop"></div>
+      <p id="hangarNotice" class="hangar-notice" aria-live="polite"></p><p id="saveWarning" class="save-warning" hidden></p>
+      <div class="section-label"><span>03 / 次の解放</span><span>達成ボーナスは飛行終了時に回収</span></div><div id="objectives" class="objectives"></div>
+      <div class="section-label"><span>04 / 兵装進化図</span><span>条件を満たして、母艦が落とす補給箱を回収</span></div><div id="evoRecipes" class="evo-recipes"></div>
+    </div>
+    <footer class="hangar-deploy"><span id="deploySummary">LANCER / 誘導ミサイル</span><button id="deploy" class="primary" disabled>この機体で出撃 <span>↗</span></button></footer>
+  </div></section>
+  <section id="guideScreen" class="overlay" hidden aria-labelledby="guideTitle"><div class="modal guide-modal"><div class="eyebrow">FIELD GUIDE / 01</div><h2 id="guideTitle">ひとつの操作。<br>無数の飛び方。</h2><div class="guide-grid"><div><b>01 / FLY</b><h3>タップでブースト</h3><p>自動で前進。タップすると上昇し、離すと重力で下降します。長押しでも連続上昇。空は上下にも続きます。</p></div><div><b>02 / SURVIVE</b><h3>避けることに集中</h3><p>近くの敵へ星弾を自動発射。ピンクの敵弾と浮遊岩を避けて。体力がなくなるまで飛べます。</p></div><div><b>03 / EVOLVE</b><h3>灯を集め、機体を強化</h3><p>緑の灯は経験値。近づくと吸い寄せられます。成長で3択、補給箱で兵装進化。2分30秒で現れる星喰いを倒せばクリア。撃墜後も回収パーツで恒久強化でき、新機体が解放されます。</p></div></div><button id="guideClose" class="primary">準備できた <span>↗</span></button><p class="keyboard-note">キーボード：Space / ↑ / W · 選択：1 / 2 / 3 · 停止：P / Esc</p></div></section>
 </main>
 </body></html>

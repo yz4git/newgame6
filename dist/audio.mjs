@@ -1,5 +1,5 @@
 export class Sound {
-  constructor(enabled = false) { this.enabled = enabled; this.ctx = null; this.lastShot = 0; }
+  constructor(enabled = false) { this.enabled = enabled; this.ctx = null; this.lastShot = 0; this.lastKill=0; }
   unlock() { if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; this.ctx = new AC(); this.master = this.ctx.createGain(); this.master.gain.value = .16; this.master.connect(this.ctx.destination); } if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); }
   toggle() { this.enabled = !this.enabled; this.unlock(); if (this.enabled) this.play('level'); return this.enabled; }
   tone(freq, start, duration, volume, type = 'sine', end = freq) {
@@ -10,10 +10,15 @@ export class Sound {
     if (kind === 'shot') { if (t - this.lastShot < .15) return; this.lastShot = t; this.tone(750, t, .08, .09, 'sine', 1350); }
     else if (kind === 'flap') this.tone(95, t, .13, .12, 'triangle', 260);
     else if (kind === 'xp') this.tone(990, t, .12, .1, 'sine', 1485);
-    else if (kind === 'kill') this.tone(290, t, .12, .1, 'triangle', 80);
+    else if(kind==='kill'){if(t-this.lastKill<.06)return;this.lastKill=t;this.tone(250,t,.12,.11,'triangle',65);}
     else if (kind === 'hurt') { this.tone(135, t, .25, .4, 'sawtooth', 60); }
     else if (kind === 'level' || kind === 'upgrade' || kind === 'won') [523, 659, 784, 1047].forEach((n, i) => this.tone(n, t + i * .09, .45, .19));
     else if (kind === 'boss' || kind === 'wave') [110, 146.8, 164.8].forEach((n, i) => this.tone(n, t + i * .12, .8, .13, 'triangle'));
+    else if(kind==='missile')this.tone(160,t,.2,.18,'triangle',70);
+    else if(kind==='beam')this.tone(650,t,.3,.17,'sine',120);
+    else if(kind==='guard')this.tone(880,t,.3,.24,'sine',440);
+    else if(kind==='revive'||kind==='evolve'||kind==='loot')[330,440,660,880].forEach((n,i)=>this.tone(n,t+i*.1,.6,.22));
+    else if(kind==='reroll')this.tone(540,t,.12,.12,'sine',880);
     else if (kind === 'storm') this.tone(1100, t, .22, .2, 'triangle', 120);
     else if (kind === 'dead') this.tone(220, t, 1, .3, 'sine', 55);
   }

@@ -11,4 +11,5 @@ const core = [...sw.matchAll(/'\.\/([^']*)'/g)].map(m => m[1].split('?')[0] || '
 for (const file of core) assert.ok(existsSync(`dist/${file}`), `Offline asset missing: ${file}`);
 for (const file of readdirSync('dist').filter(f => /\.(mjs|html)$/.test(f))) { const text = readFileSync(`dist/${file}`, 'utf8'); for (const m of text.matchAll(/(?:from |src=|href=)["']\.\/([^"']+)["']/g)) { const path = m[1].split('?')[0]; assert.ok(existsSync(`dist/${path}`)); assert.ok(core.includes(path), `Not cached: ${path}`); } }
 assert.ok(!html.includes('margin-tide')); assert.ok(html.includes('LUMEN')); assert.equal(JSON.parse(readFileSync('.openai/hosting.json')).static.directory, 'dist');
-console.log('JavaScript, UI bindings, manifest and complete offline asset graph verified.');
+const atlas=JSON.parse(readFileSync('dist/assets/mech-atlas-v2.json','utf8'));assert.equal(Object.keys(atlas.frames).length,8);for(const [name,[x,y,w,h]]of Object.entries(atlas.frames)){assert.ok(w>0&&h>0&&x>=0&&y>=0&&x+w<=atlas.size[0]&&y+h<=atlas.size[1],`Invalid sprite: ${name}`);}assert.equal(readFileSync('dist/assets/mech-atlas-v2.webp').toString('ascii',0,4),'RIFF');
+console.log('JavaScript, UI bindings, 8 mech frames, manifest and complete offline asset graph verified.');

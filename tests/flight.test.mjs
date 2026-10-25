@@ -1,65 +1,30 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { Flight, STEP, UPGRADES } from '../dist/model.mjs';
-import { loadRecord, finishRecord, saveRecord } from '../dist/storage.mjs';
-const advance = (f, seconds) => { for (let i = 0; i < Math.round(seconds / STEP); i++) f.tick(STEP); };
-test('one press climbs, gravity makes the same pilot fall, camera follows both directions', () => {
-  const f = new Flight(4); f.spawnTimer = 100; f.gateTimer = 100; f.setView(1000, 640, true);
-  assert.equal(f.flap(), true); advance(f, .4); assert.ok(f.p.y < -45); const high = f.camera.y;
-  assert.ok(high < -330); advance(f, 2); assert.ok(f.p.y > 300); assert.ok(f.camera.y > high + 200);
-  const before = f.camera.y; for (let i = 0; i < 7; i++) { f.flap(); advance(f, .23); } assert.ok(f.camera.y < before - 130);
-});
-test('flaps have a short debounce; simulation pauses during a level choice', () => {
-  const f = new Flight(1); assert.ok(f.flap()); assert.equal(f.flap(), false); advance(f, .2); assert.ok(f.flap());
-  f.collect(7); assert.equal(f.status, 'upgrade'); const { x, y } = f.p, t = f.time; advance(f, 4); assert.deepEqual([f.p.x, f.p.y, f.time], [x, y, t]);
-  assert.equal(f.choices.length, 3); assert.equal(new Set(f.choices).size, 3); assert.equal(f.choose('invalid'), false); const key = f.choices[0]; assert.ok(f.choose(key)); assert.equal(f.skills[key], 1); assert.equal(f.status, 'playing');
-});
-test('automatic starfire kills without any attack input and its light grants XP', () => {
-  const f = new Flight(3); f.spawnTimer = 100; f.gateTimer = 100; f.spawn('wisp', 150, 0);
-  for (let i = 0; i < 600; i++) { if (i % 112 === 0) f.flap(); f.tick(); }
-  assert.ok(f.kills >= 1); assert.ok(f.totalXP >= 1); assert.ok(f.events.some(e => e.type === 'shot'));
-});
-test('orbit and lightning cause damage independently of starfire', () => {
-  const f = new Flight(5); f.spawnTimer = 100; f.shotTimer = 100; f.skills.orbit = 2;
-  const e = f.spawn('elite', 68, 0); const hp = e.hp; advance(f, .05); assert.ok(e.hp < hp);
-  const g = new Flight(6); g.enemies = []; g.skills.storm = 2; g.spawn('ray', 180, 0); g.spawn('ray', 220, 40); g.lightning(); assert.equal(g.kills, 2); assert.equal(g.effects.filter(e => e.kind === 'lightning').length, 2);
-});
-test('damage has invulnerability, rocks hurt, and zero HP ends the flight once', () => {
-  const f = new Flight(7); f.damage(12); f.damage(12); assert.equal(f.p.hp, 88); advance(f, 1.2); f.rocks.push({ x: f.p.x, y: f.p.y, rx: 80, ry: 100 }); f.tick(); assert.equal(f.p.hp, 70);
-  f.p.hurt = 0; f.damage(1000); f.damage(1000); assert.equal(f.status, 'dead'); assert.equal(f.events.filter(e => e.type === 'end').length, 1);
-});
-test('health and capped skills upgrade correctly, surplus XP queues a second selection', () => {
-  const f = new Flight(8); f.p.hp = 20; f.collect(40); f.choices = ['heart']; f.choose('heart'); assert.equal(f.p.maxHP, 120); assert.equal(f.p.hp, 60); assert.equal(f.status, 'upgrade'); assert.equal(f.level, 3);
-  for (const [key, u] of Object.entries(UPGRADES)) f.skills[key] = u.max; assert.deepEqual(f.rollUpgrades(), ['heart']);
-});
-test('boss arrives at 150s, tracks held ascent, survives culling, defeat wins', () => {
-  const f = new Flight(9); f.time = 149.99; f.spawnTimer = 100; f.gateTimer = 100; f.nextSwarm = 200; advance(f, .03); assert.ok(f.bossSpawned); assert.ok(f.boss);
-  f.shotTimer = 100; f.p.hp = 10000; for (let i = 0; i < 1200; i++) { if (i % 28 === 0) f.flap(); f.tick(); }
-  assert.ok(f.enemies.includes(f.boss)); assert.ok(Math.abs(f.boss.y - f.p.y) < 220); f.hit(f.boss, 100000); assert.equal(f.status, 'won'); assert.equal(f.events.at(-1).won, true);
-});
-test('portrait resize retains world positions and camera anchor; long runs remain bounded', () => {
-  const f = new Flight(11); f.p.y = -1200; f.setView(390, 840, true); assert.equal(f.p.y, -1200); assert.equal(f.camera.y, -1620); assert.equal(f.camera.x, -390 * .29);
-  f.p.hp = 10000; for (let i = 0; i < 120 * 90; i++) { if (i % 112 === 0) f.flap(); if (f.status === 'upgrade') f.choose(f.choices[0]); f.tick(); }
-  assert.ok(Number.isFinite(f.p.x)); assert.ok(f.enemies.length < 150); assert.ok(f.bullets.length < 100); assert.ok(f.effects.length < 200); assert.ok(f.gems.length < 150);
-});
-test('records tolerate corrupt or unavailable storage and keep bests across flights', () => {
-  const memory = new Map(); const storage = { getItem: k => memory.get(k), setItem: (k, v) => memory.set(k, v) };
-  memory.set('lumen-wing-v1', '{broken'); let r = loadRecord(storage); assert.equal(r.runs, 0);
-  r = finishRecord(r, { time: 86, kills: 45, status: 'dead' }); r = finishRecord(r, { time: 153, kills: 120, status: 'won' }); saveRecord(r, storage); const loaded = loadRecord(storage); assert.equal(loaded.wins, 1); assert.equal(loaded.bestKills, 120); assert.equal(loaded.runs, 2);
-  assert.equal(saveRecord(r, { setItem() { throw Error('quota'); } }), false);
-});
-test('every 25 kills yields a healing light; recovery caps at max HP without granting XP', () => {
-  const f = new Flight(22); f.enemies=[]; f.kills=24; f.p.hp=95; const e=f.spawn('wisp',f.p.x,f.p.y); f.hit(e,1000);
-  const heal=f.gems.find(g=>g.kind==='heal'); assert.ok(heal); assert.equal(heal.value,12); f.gems=[heal]; heal.y=f.p.y; heal.x=f.p.x; f.tick(); assert.equal(f.p.hp,100); assert.equal(f.totalXP,0);
-});
-test('a full unassisted-damage run can earn upgrades, survive and defeat the boss in both orientations', () => {
-  for (const view of [[1100,640],[390,840]]) {
-    // A reproducible full-clear fixture for the faster encounter timing; not every random run is won.
-    const f=new Flight(302);f.setView(...view,true);let lastFlap=-1;
-    for(let i=0;i<120*210&&!['dead','won'].includes(f.status);i++) {
-      if(f.status==='upgrade') {const priority=['storm','split','tempo','orbit','power','heart','magnet'];f.choose([...f.choices].sort((a,b)=>priority.indexOf(a)-priority.indexOf(b))[0]);}
-      if(f.time-lastFlap>=.97){f.flap();lastFlap=f.time;}f.tick();f.events=[];
-    }
-    assert.equal(f.status,'won',`No complete route for ${view}`); assert.ok(f.time>150&&f.time<190); assert.ok(f.level>=12); assert.ok(f.kills>300); assert.ok(f.p.hp>0);
-  }
+import test from 'node:test';import assert from 'node:assert/strict';
+import {Flight,STEP,UPGRADES} from '../dist/model.mjs';
+import {META,CHASSIS,EVOLUTIONS,metaSpent,chassisUnlocked} from '../dist/catalog.mjs';
+import {normalizeRecord,loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from '../dist/storage.mjs';
+const advance=(f,seconds)=>{for(let i=0;i<Math.round(seconds/STEP);i++)f.tick(STEP);};
+const peaceful=f=>{f.enemies=[];f.spawnTimer=1000;f.gateTimer=1000;f.nextSwarm=1000;f.nextElite=1000;return f;};
+test('one-button lift, natural fall and vertical camera tracking work in both directions',()=>{const f=peaceful(new Flight(4));f.setView(1000,640,true);assert.ok(f.flap());assert.equal(f.flap(),false);advance(f,.4);assert.ok(f.p.y<-45);const high=f.camera.y;assert.ok(high<-330);advance(f,2);assert.ok(f.p.y>300);assert.ok(f.camera.y>high+200);const before=f.camera.y;for(let i=0;i<7;i++){f.flap();advance(f,.23);}assert.ok(f.camera.y<before-130);});
+test('upgrade freezes the complete simulation, valid choice resumes, rerolls are finite',()=>{const f=peaceful(new Flight(1));f.collect(7);assert.equal(f.status,'upgrade');const snap=[f.p.x,f.p.y,f.time];advance(f,4);assert.deepEqual([f.p.x,f.p.y,f.time],snap);assert.equal(f.choices.length,3);assert.equal(new Set(f.choices).size,3);assert.equal(f.choose('invalid'),false);const count=f.rerolls;assert.ok(f.reroll());assert.equal(f.rerolls,count-1);while(f.rerolls)f.reroll();assert.equal(f.reroll(),false);const key=f.choices[0],old=f.skills[key];assert.ok(f.choose(key));assert.equal(f.skills[key],old+1);assert.equal(f.status,'playing');});
+test('starfire auto-targets without attack input and recovered lights grant experience',()=>{const f=peaceful(new Flight(3));f.spawn('wisp',150,0);for(let i=0;i<600;i++){if(i%112===0)f.flap();f.tick();}assert.ok(f.kills>=1);assert.ok(f.totalXP>=1);assert.ok(f.damageStats.star>0||f.damageStats.missile>0);});
+test('beam pierces two enemies, missiles explode in an area and drones fire independently',()=>{const f=peaceful(new Flight(5));f.skills.beam=1;f.spawn('wisp',120,-17);f.spawn('wisp',220,-17);f.beam();assert.equal(f.kills,2);assert.ok(f.damageStats.beam>0);assert.ok(f.effects.some(e=>e.kind==='beam'));const g=peaceful(new Flight(6));g.spawn('ray',110,0);g.spawn('ray',140,0);g.explode(120,0,70,100,'missile');assert.equal(g.kills,2);assert.ok(g.damageStats.missile>0);g.skills.drone=2;g.spawn('elite',200,0);g.drones();assert.ok(g.bullets.some(b=>b.kind==='drone'));});
+test('satellite blades and arc lightning damage enemies without starfire',()=>{const f=peaceful(new Flight(7));f.skills.orbit=2;f.timers.star=100;f.timers.missile=100;const e=f.spawn('elite',75,0),hp=e.hp;advance(f,.04);assert.ok(e.hp<hp);const g=peaceful(new Flight(8));g.skills.storm=3;g.spawn('wisp',160,0);g.spawn('ray',200,30);g.lightning();assert.equal(g.kills,2);assert.ok(g.damageStats.storm>0);});
+test('damage invulnerability, armor, shield cooldown and a single reboot are respected',()=>{const f=peaceful(new Flight(9));f.damage(12);f.damage(12);assert.equal(f.p.hp,88);advance(f,1);f.skills.armor=2;f.damage(12);assert.equal(f.p.hp,80);f.p.hurt=0;f.skills.shield=1;f.p.shield=1;f.damage(50);assert.equal(f.p.hp,80);assert.equal(f.p.shield,0);advance(f,1);assert.equal(f.p.shield,0);f.damage(20);assert.equal(f.p.hp,64);advance(f,8);assert.equal(f.p.shield,1);const g=peaceful(new Flight(10,{meta:{rescue:1}}));g.damage(1000);assert.equal(g.status,'playing');assert.equal(g.revivesUsed,1);assert.equal(g.p.hp,50);g.p.hurt=0;g.damage(1000);assert.equal(g.status,'dead');assert.equal(g.events.filter(e=>e.type==='end').length,1);});
+test('evolution needs the pair and a supply chest; opening pauses and cannot evolve twice',()=>{const f=peaceful(new Flight(11));f.skills.missile=4;f.skills.split=2;assert.equal(f.evolutions.ragnarok,false);f.openChest();assert.equal(f.evolutions.ragnarok,true);assert.equal(f.loot.id,'ragnarok');assert.equal(f.status,'loot');const x=f.p.x,t=f.time;advance(f,3);assert.deepEqual([f.p.x,f.time],[x,t]);assert.ok(f.resumeLoot());assert.equal(f.status,'playing');f.openChest();assert.equal(f.loot.kind,'supply');assert.equal(Object.values(f.evolutions).filter(Boolean).length,1);});
+test('XP and chest picked up together queue both rewards without losing a level choice',()=>{const f=peaceful(new Flight(12));f.pendingChests=1;f.collect(7);const key=f.choices[0];f.choose(key);assert.equal(f.status,'loot');assert.equal(f.chestCount,1);assert.ok(f.resumeLoot());assert.equal(f.status,'playing');});
+test('elite death yields a chest, every 35th kill a capped heal, no healing XP',()=>{const f=peaceful(new Flight(13));const e=f.spawn('elite',10,0);f.hit(e,1e5);assert.equal(f.eliteKills,1);assert.ok(f.gems.some(g=>g.kind==='chest'));const g=peaceful(new Flight(14));g.kills=34;g.p.hp=95;const target=g.spawn('wisp',0,0);g.hit(target,1000);g.gems=g.gems.filter(item=>item.kind==='heal');assert.equal(g.gems.length,1);g.gems[0].x=0;g.gems[0].y=0;g.tick();assert.equal(g.p.hp,100);assert.equal(g.totalXP,0);});
+test('enemies scale, burst warnings repeat, boss tracks ascent, changes phase and ends on defeat',()=>{const f=peaceful(new Flight(15));const early=f.spawn('wisp',200,0);f.time=120;const late=f.spawn('wisp',200,0);assert.ok(late.hp>early.hp*1.8);const g=peaceful(new Flight(16));g.p.hp=g.p.maxHP=1e6;g.timers.star=1000;g.timers.missile=1000;const gun=g.spawn('thorn',220,0);gun.timer=0;let seen=0;for(let i=0;i<120*8;i++){if(i%115===0)g.flap();g.tick();seen+=g.hostiles.length;g.hostiles=[];}assert.ok(seen>=6);const b=peaceful(new Flight(17));b.p.hp=1e6;b.time=149.99;advance(b,.03);assert.ok(b.boss);for(let i=0;i<120*6;i++){if(i%28===0)b.flap();b.tick();}assert.ok(b.enemies.includes(b.boss));assert.ok(Math.abs(b.boss.y-b.p.y)<250);b.boss.hp=b.boss.maxHP*.3;b.tick();assert.equal(b.boss.phaseIndex,2);b.hit(b.boss,1e7);assert.equal(b.status,'won');});
+test('chassis starters and permanent upgrades affect actual combat stats',()=>{const f=new Flight(18,{chassis:'bastion',meta:{reactor:3,hull:2,analysis:2}});assert.equal(f.p.maxHP,CHASSIS.bastion.hp+16);assert.equal(f.skills.orbit,1);assert.equal(f.rerolls,4);assert.ok(f.power>1);const g=new Flight(18,{chassis:'wraith'});assert.equal(g.skills.beam,1);assert.equal(g.p.maxHP,85);assert.ok(g.power>f.power);});
+test('old records migrate, corrupt data is safe and storage failure does not throw',()=>{const mem=new Map([['lumen-wing-v1',JSON.stringify({runs:3,bestKills:80,bestTime:95,wins:1,sound:true})]]),storage={getItem:k=>mem.get(k),setItem:(k,v)=>mem.set(k,v)};const r=loadRecord(storage);assert.equal(r.runs,3);assert.equal(r.totalKills,80);assert.ok(chassisUnlocked(r,'bastion'));assert.ok(chassisUnlocked(r,'wraith'));assert.equal(r.credits,0);assert.equal(r.meta.reactor,0);assert.equal(r.sound,true);mem.set('lumen-wing-v1','{bad');assert.equal(loadRecord(storage).runs,0);assert.equal(saveRecord(r,{setItem(){throw Error('quota');}}),false);assert.equal(normalizeRecord({credits:Infinity,meta:{reactor:999},selected:'bad'}).meta.reactor,5);});
+test('purchases enforce costs and caps; free refund restores precisely the investment',()=>{let r=normalizeRecord({credits:1000});const start=r.credits;for(let i=0;i<5;i++){const next=purchaseUpgrade(r,'reactor');assert.ok(next.ok);r=next.record;}assert.equal(purchaseUpgrade(r,'reactor').ok,false);assert.equal(metaSpent(r.meta),270);const refund=refundUpgrades(r);assert.equal(refund.refund,270);assert.equal(refund.record.credits,start);assert.equal(metaSpent(refund.record.meta),0);assert.equal(refundUpgrades(refund.record).refund,0);assert.equal(purchaseUpgrade(normalizeRecord(), 'hull').ok,false);});
+test('debrief awards parts and unlocks once, including after a reload',()=>{let r=normalizeRecord();const f=new Flight(19);f.status='dead';f.time=95;f.kills=70;f.eliteKills=1;f.evolutions.ragnarok=true;const tx=settleRun(r,f);assert.ok(tx.reward>0);assert.ok(tx.bonus>0);assert.ok(tx.unlocks.includes('bastion'));assert.ok(tx.unlocks.includes('wraith'));assert.equal(tx.record.totalEvolutions,1);const twice=settleRun(normalizeRecord(JSON.parse(JSON.stringify(tx.record))),f);assert.equal(twice.reward,0);assert.equal(twice.record.credits,tx.record.credits);assert.equal(twice.record.runs,1);assert.equal(selectChassis(normalizeRecord(),'bastion').selected,'lancer');const selected=selectChassis(tx.record,'bastion');assert.equal(flightOptions(selected).chassis,'bastion');});
+test('90 seconds with upgrades and loot resolved remains finite and bounded in portrait',()=>{const f=new Flight(20);f.setView(390,840,true);f.p.hp=f.p.maxHP=1e6;for(let i=0;i<120*90;i++){if(i%115===0)f.flap();if(f.status==='upgrade')f.choose(f.choices[0]);if(f.status==='loot')f.resumeLoot();f.tick();f.events=[];}assert.ok(f.time>89);assert.ok(Number.isFinite(f.p.x));assert.ok(f.enemies.length<=190);assert.ok(f.bullets.length<=300);assert.ok(f.hostiles.length<=350);assert.ok(f.effects.length<=180);assert.ok(f.gems.length<=320);});
+test('all six evolution recipes are obtainable from genuine supply rewards',()=>{for(const [id,u]of Object.entries(EVOLUTIONS)){const f=peaceful(new Flight(42));for(const [key,rank]of Object.entries(u.need))f.skills[key]=rank;f.openChest();assert.equal(f.loot.id,id);assert.equal(f.evolutions[id],true);assert.equal(f.status,'loot');}});
+test('campaign-equipped builds can survive and finish in both orientations without in-flight cheats',()=>{
+ const meta=Object.fromEntries(Object.entries(META).map(([k,u])=>[k,u.max]));
+ const score=(f,k)=>k==='heart'?(f.p.hp<f.p.maxHP*.6?100:1):k==='shield'?(f.skills.shield?5:95):k==='armor'?(f.skills.armor<2?65:5):k==='missile'?(f.skills.missile<4?90:50):k==='split'?(f.skills.split<2?88:35):k==='beam'?(f.skills.beam<4?80:45):k==='power'?(f.skills.power<4?82:40):k==='tempo'?(f.skills.tempo<3?78:45):k==='magnet'?(f.skills.magnet<2?60:10):k==='orbit'?(f.skills.orbit<4?55:30):k==='storm'?50:k==='drone'?45:15;
+ for(const view of [[1100,640],[390,840]]){const f=new Flight(17,{chassis:'bastion',meta});f.setView(...view,true);let lastFlap=-1;
+  for(let step=0;step<120*230&&!['dead','won'].includes(f.status);step++){if(f.status==='upgrade')f.choose([...f.choices].sort((a,b)=>score(f,b)-score(f,a))[0]);if(f.status==='loot')f.resumeLoot();if(f.time-lastFlap>=.97){f.flap();lastFlap=f.time;}f.tick();f.events=[];}
+  assert.equal(f.status,'won',`campaign run failed at ${view}`);assert.ok(f.time>=150&&f.time<200);assert.ok(f.level>=20);assert.ok(f.chestCount>=1);assert.ok(Object.values(f.evolutions).some(Boolean));assert.ok(f.damageTaken>0);assert.ok(f.p.hp>0);
+ }
 });
