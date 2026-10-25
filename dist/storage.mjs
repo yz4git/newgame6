@@ -1,10 +1,6 @@
-import {normalizePrint} from './prints.mjs?v=1.1.0';
-export const SAVE_KEY='margin-tide-v1';
-export const DEFAULT_SETTINGS={audio:true,motion:true};
-export function normalize(value){const data=value&&typeof value==='object'?value:{};return {version:2,last:Number.isInteger(data.last)?Math.max(0,Math.min(7,data.last)):0,best:Array.from({length:8},(_,i)=>{const b=data.best?.[i];return b&&Number.isInteger(b.shots)&&b.shots>=0&&b.shots<=100000&&Number.isInteger(b.tears)&&b.tears>=0?{shots:b.shots,tears:b.tears,medals:Math.max(1,Math.min(3,Math.round(b.medals)||1))}:null;}),prints:Array.from({length:8},(_,i)=>normalizePrint(data.prints?.[i],i)),settings:{audio:typeof data.settings?.audio==='boolean'?data.settings.audio:true,motion:typeof data.settings?.motion==='boolean'?data.settings.motion:true}};}
-export class Logbook{
- constructor(storage){this.storage=storage;this.failed=false;try{this.data=normalize(JSON.parse(storage.getItem(SAVE_KEY)||'null'));}catch{this.data=normalize(null);this.failed=true;}}
- save(){try{this.storage.setItem(SAVE_KEY,JSON.stringify(this.data));this.failed=false;return true;}catch{this.failed=true;return false;}}
- keepPrint(print){const page=normalizePrint(print);if(!page)return false;this.data.prints[page.index]=page;return this.save();}
- finish(index,result,print=null){const old=this.data.best[index];const record={shots:Math.max(0,Math.round(result.shots)),tears:Math.max(0,Math.round(result.tears)),medals:Math.max(1,Math.min(3,result.medals))};if(!old||record.medals>old.medals||record.medals===old.medals&&record.shots<old.shots)this.data.best[index]=record;const page=normalizePrint(print,index);if(page)this.data.prints[index]=page;this.data.last=Math.min(7,index+1);return this.save();}
+const KEY = 'lumen-wing-v1';
+export function loadRecord(storage) {
+  try { storage ||= globalThis.localStorage; const v = JSON.parse(storage.getItem(KEY) || '{}'); return { runs: Math.max(0, Number(v.runs) || 0), bestTime: Math.max(0, Number(v.bestTime) || 0), bestKills: Math.max(0, Number(v.bestKills) || 0), wins: Math.max(0, Number(v.wins) || 0), sound: v.sound === true }; } catch { return { runs: 0, bestTime: 0, bestKills: 0, wins: 0, sound: false }; }
 }
+export function saveRecord(record, storage) { try { storage ||= globalThis.localStorage; storage.setItem(KEY, JSON.stringify(record)); return true; } catch { return false; } }
+export function finishRecord(record, flight) { return { ...record, runs: record.runs + 1, wins: record.wins + Number(flight.status === 'won'), bestTime: Math.max(record.bestTime, flight.time), bestKills: Math.max(record.bestKills, flight.kills) }; }

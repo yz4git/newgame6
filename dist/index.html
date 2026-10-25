@@ -1,53 +1,32 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#efe9dc">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="description" content="墨の島、紙の舟。指で引いて放すたび、あなただけの航路が生まれる。8つの海を渡る、静かなアートゲーム。">
-  <title>余白航路 — MARGIN TIDE</title>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./icon-180.png">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./ink.css?v=1.1.0">
-  <script>if(['terminal.local','localhost','127.0.0.1'].includes(location.hostname)&&'serviceWorker'in navigator)navigator.serviceWorker.getRegistrations().then(r=>Promise.all(r.map(x=>x.unregister()))).catch(()=>{});</script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10182c"><meta name="description" content="タップで羽ばたき、光で生き延びる。1ボタン飛行と自動攻撃を組み合わせた浮遊サバイバル。">
+  <title>LUMEN WING — 星を継ぐ翼</title><link rel="icon" href="./icon.svg"><link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css?v=lumen-1.0.0"><script type="module" src="./app.mjs?v=lumen-1.0.0"></script>
 </head>
 <body>
-<main id="app">
-  <canvas id="sea" tabindex="0" role="img" aria-label="余白航路。墨の島と紙の舟の海。"></canvas>
-  <section id="title" aria-label="タイトル">
-    <div class="edition"><span class="small-rule"></span> A PLAYABLE INKSCAPE <span class="edition-number">N° 06</span></div>
-    <div class="title-copy">
-      <p class="eyebrow">余白に、風を。</p>
-      <h1>余白航路</h1>
-      <p class="roman-title">MARGIN TIDE</p>
-      <p class="intro">墨の島、紙の舟。<br>あなたの指先から、航路が生まれる。</p>
-      <div class="title-actions">
-        <button id="begin" class="primary" disabled><span id="beginText">海をひらいています</span><span aria-hidden="true">↗</span></button>
-        <div class="sub-actions"><button id="logbook" class="text-button">航海帖 <span aria-hidden="true">＋</span></button><button id="gallery" class="text-button">作品集</button><button id="how" class="text-button">遊び方</button></div>
-      </div>
-      <p id="continueNote" class="continue-note">八つの海を、ひとつずつ。</p>
-    </div>
-    <footer class="title-footer"><span>01 — 08 <i></i> THE LIVING PAPER · v1.1</span><span>舟で描き、墨を金に。</span></footer>
+<main id="game">
+  <canvas id="sky" aria-label="上下に広がる夜空を飛ぶゲーム画面"></canvas>
+  <section id="titleScreen" class="title-screen">
+    <header class="masthead"><a class="wordmark" href="./" aria-label="Lumen Wing ホーム"><svg viewBox="0 0 48 40" aria-hidden="true"><path d="M24 24 5 8l4 20 15-4 15 4 4-20-19 16Z M24 9v24 M19 35h10"/></svg><span>L / W<span class="tiny">FLIGHT NO. 001</span></span></a><div class="edition">ONE WING. A THOUSAND STARS.<span>星を継ぐ翼</span></div><button class="icon-btn sound-toggle" aria-label="サウンドを切り替える" aria-pressed="false">♪<span class="sound-text">SOUND OFF</span></button></header>
+    <div class="hero"><div class="eyebrow"><span class="live-dot"></span> ONE-BUTTON FLIGHT × AUTO SURVIVAL</div><h1>LUMEN<br><span>WING</span><i>星を継ぐ翼</i></h1><p class="hero-copy">羽ばたきひとつで、夜を越える。<br>降りそそぐ星を集めて、あなただけの翼へ。</p><div class="start-row"><button id="start" class="primary">飛行をはじめる <span>↗</span></button><button id="howto" class="text-btn">飛び方 <span>＋</span></button></div><p id="best" class="best">FIRST FLIGHT / まだ見ぬ空へ</p></div>
+    <div class="ship-label"><span>01 / THE LIGHTBEARER</span><i>ルーメンモス</i><span class="hairline"></span></div>
+    <footer class="title-footer"><div><span class="step-number">01</span><p>タップで上昇<small>離すと落下。空を縫う。</small></p></div><div><span class="step-number">02</span><p>攻撃はオート<small>避けることに、夢中になる。</small></p></div><div><span class="step-number">03</span><p>星を集めて進化<small>夜の主を越えていけ。</small></p></div><span class="version">LUMEN WING / 1.0</span></footer>
   </section>
-  <nav id="artUI" hidden aria-label="航路作品の操作"><button id="backFromArt" class="text-button">← 航海へ戻る</button><button id="pinArt" class="text-button">作品集に記録</button><button id="saveArt" class="art-save">画像を保存 ↗</button></nav>
-  <section id="gameUI" hidden aria-label="航海の操作">
-    <header class="game-header">
-      <button id="chapterButton" class="chapter-button" aria-label="航海帖を開く"><span id="chapterNumber">01</span><span class="chapter-divider"></span><span><span id="chapterName">はじまりの波</span><small id="chapterEnglish">A FIRST RIPPLE</small></span></button>
-      <div id="lamps" class="lamp-counter" role="status" aria-label="灯 0 / 3"></div>
-      <div class="header-actions"><button id="audioButton" class="icon-button" aria-label="音を消す" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h4l5-4v12l-5-4H4zM16 8q5 4 0 8M18 5q8 7 0 14"/></svg></button><button id="pauseButton" class="icon-button" aria-label="一時停止"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
-    </header>
-    <footer class="game-footer"><span id="strokeCounter"><strong>00</strong> ひと漕ぎ</span><span id="hint">指を引いて、放す。灯を集めて港へ。</span><button id="retryButton" class="text-button" aria-label="この海を最初からやり直す">やり直す <span aria-hidden="true">↺</span></button></footer>
-    <div id="firstGesture" aria-hidden="true"><span class="gesture-dot"></span><span class="gesture-line"></span><span>どこからでも、引いて放す</span></div>
+  <section id="hud" class="hud" hidden aria-label="飛行状況">
+    <div class="xp-track"><div id="xpFill"></div></div>
+    <div class="hud-top"><div class="pilot-status"><div class="pilot-emblem">✧</div><div><div class="hp-label"><span>LUMEN <b id="level">LV. 1</b></span><span id="hpText">100 / 100</span></div><div class="hp-track"><div id="hpFill"></div></div></div></div><div class="mission-time"><span id="phase">星喰い到来まで</span><strong id="timer">02:30</strong></div><div class="hud-actions"><span class="kills">✧ <b id="kills">0</b><small>撃破</small></span><button id="pause" class="icon-btn pause-btn" aria-label="一時停止">Ⅱ</button><button class="icon-btn sound-toggle" aria-label="サウンドを切り替える" aria-pressed="false">♪</button></div></div>
+    <div id="bossHUD" class="boss-hud" hidden><div><span>THE ECLIPSE</span><b>星喰い</b></div><div class="boss-track"><div id="bossFill"></div></div></div>
+    <div id="toast" class="toast" hidden aria-live="polite"></div>
+    <div id="flightTip" class="flight-tip"><span class="tap-glyph">⌃</span><strong>タップ / Space で上昇</strong><span>離すと落下 · 攻撃はオート · 長押しもOK</span></div>
+    <div class="hud-bottom"><div id="armory" class="armory"><span>✦ <b>1</b></span></div><div class="altitude"><small>ALTITUDE</small><span id="altitude">+0 m</span></div></div>
+    <button id="rise" class="rise-btn" aria-label="上昇：押すと羽ばたく、長押しで連続上昇"><span>⌃</span>RISE</button>
   </section>
-  <p id="toast" role="status" aria-live="polite" hidden></p>
-  <dialog id="panel" aria-labelledby="panelTitle"><div id="panelContent"></div></dialog>
-  <dialog id="exportPanel" aria-labelledby="exportHeading"><div class="export-sheet"><div class="panel-heading"><h2 id="exportHeading">航路を一枚に。</h2><button id="closeExport" class="close-button" aria-label="画像の保存画面を閉じる">×</button></div><img id="exportPreview" alt="保存する航路作品"><div class="export-actions"><a id="downloadArt" class="art-save" download="margin-tide.png">PNGを保存 ↗</a><button id="shareArt" class="text-button" hidden>共有する</button><p>iPhoneでは画像を長押しして<br>保存することもできます。</p></div></div></dialog>
-  <div id="live" class="sr-only" aria-live="polite"></div>
-  <noscript>余白航路を遊ぶには、ブラウザーのJavaScriptを有効にしてください。</noscript>
+  <section id="upgradeScreen" class="overlay upgrade-screen" hidden aria-labelledby="upgradeTitle"><div class="modal upgrade-modal"><div class="eyebrow">A NEW CONSTELLATION</div><h2 id="upgradeTitle">翼に、新たな光を。</h2><p class="modal-copy">成長をひとつ選んで、ふたたび空へ。</p><div id="choices" class="choices"></div><div class="modal-foot"><span id="upgradeLevel">LEVEL 02</span><span>選択中は時間が止まります</span></div></div></section>
+  <section id="pauseScreen" class="overlay" hidden aria-labelledby="pauseTitle"><div class="modal compact"><div class="eyebrow">BETWEEN TWO WINGBEATS</div><h2 id="pauseTitle">ひと息、空の途中で。</h2><p class="modal-copy">タップで上昇、離すと落下。<br>長押しで連続上昇。攻撃と経験値回収はオート。</p><button id="resume" class="primary">飛行を再開 <span>↗</span></button><button id="quit" class="text-btn">タイトルに戻る</button><p class="keyboard-note">Space / ↑ / W で上昇 · P / Esc で一時停止</p></div></section>
+  <section id="resultScreen" class="overlay result-screen" hidden aria-labelledby="resultTitle"><div class="modal result-modal"><div id="resultEyebrow" class="eyebrow">FLIGHT RECORDED</div><div id="resultSeal" class="result-seal">✧</div><h2 id="resultTitle">光は、次の翼へ。</h2><p id="resultCopy" class="modal-copy">星を集め、また空へ。</p><div class="result-stats"><div><small>飛行時間</small><strong id="resultTime">00:00</strong></div><div><small>撃破数</small><strong id="resultKills">0</strong></div><div><small>到達レベル</small><strong id="resultLevel">1</strong></div></div><div id="resultBuild" class="result-build"></div><button id="retry" class="primary">もう一度、空へ <span>↗</span></button><button id="resultHome" class="text-btn">タイトルに戻る</button></div></section>
+  <section id="guideScreen" class="overlay" hidden aria-labelledby="guideTitle"><div class="modal guide-modal"><div class="eyebrow">FIELD GUIDE / 01</div><h2 id="guideTitle">ひとつの操作。<br>無数の飛び方。</h2><div class="guide-grid"><div><b>01 / FLY</b><h3>タップで羽ばたく</h3><p>自動で前進。タップすると上昇し、離すと重力で下降します。長押しでも連続上昇。空は上下にも続きます。</p></div><div><b>02 / SURVIVE</b><h3>避けることに集中</h3><p>近くの敵へ星弾を自動発射。ピンクの敵弾と浮遊岩を避けて。体力がなくなるまで飛べます。</p></div><div><b>03 / EVOLVE</b><h3>灯を集め、翼を育てる</h3><p>緑の灯は経験値。近づくと吸い寄せられます。成長するたび3つの力から選択。2分30秒で現れる星喰いを倒せばクリア。</p></div></div><button id="guideClose" class="primary">準備できた <span>↗</span></button><p class="keyboard-note">キーボード：Space / ↑ / W · 選択：1 / 2 / 3 · 停止：P / Esc</p></div></section>
 </main>
-<script type="module" src="./app.mjs?v=1.1.0"></script>
-</body>
-</html>
+</body></html>

@@ -1,70 +1,107 @@
-import {Voyage,launchVector,clamp,LEVELS} from './model.mjs?v=1.1.0';
-import {PALETTES} from './levels.mjs?v=1.1.0';
-import {Inkscape} from './render.mjs?v=1.1.0';
-import {SeaAudio} from './audio.mjs?v=1.1.0';
-import {Logbook} from './storage.mjs?v=1.1.0';
-import {makePrint,normalizePrint,sceneForPrint} from './prints.mjs?v=1.1.0';
-const $=s=>document.querySelector(s),canvas=$('#sea'),panel=$('#panel'),content=$('#panelContent');
-let local;try{local=window.localStorage;}catch{}
-const book=new Logbook(local);try{if(!local?.getItem?.('margin-tide-v1')&&matchMedia('(prefers-reduced-motion: reduce)').matches)book.data.settings.motion=false;}catch{}
-const audio=new SeaAudio();audio.setEnabled(book.data.settings.audio);const game=new Voyage(book.data.last);
-function loadImage(path){return new Promise((resolve,reject)=>{const im=new Image(),timeout=setTimeout(()=>reject(Error('art timeout')),10000);im.onload=()=>{clearTimeout(timeout);resolve(im);};im.onerror=()=>{clearTimeout(timeout);reject(Error('art unavailable'));};im.src=path;});}
-const images=await Promise.allSettled(['./assets/ink-atlas.webp','./assets/pigments.webp'].map(loadImage));const art=images[0].status==='fulfilled'?images[0].value:null,pigments=images[1].status==='fulfilled'?images[1].value:null,artFailed=images.some(i=>i.status==='rejected');
-const renderer=new Inkscape(canvas,art,pigments);let mode='title',paused=false,drag=null,pointer=null,panelKind='',panelBack='',last=performance.now(),accumulator=0,toastTime=0,clearDelay=-1,lastHud='',hintsTime=0,artScene=null,artPrint=null,artReturn='',modeBeforeArt='play';const keys=new Set();let lastDirection={x:1,y:0};
-function viewport(){const rect=$('#app').getBoundingClientRect(),style=getComputedStyle($('#gameUI'));renderer.insets={top:parseFloat(style.paddingTop)||0,bottom:parseFloat(style.paddingBottom)||0,left:parseFloat(style.paddingLeft)||0,right:parseFloat(style.paddingRight)||0};renderer.resize(rect.width,rect.height,window.devicePixelRatio||1);cancelAim();}
-window.addEventListener('resize',viewport);window.visualViewport?.addEventListener('resize',viewport);viewport();
-function palette(){return mode==='title'?PALETTES.paper:PALETTES[(mode==='art'?artScene:game).level.palette];}
-function applyPalette(){const p=palette();for(const key of ['paper','ink','muted','line','gold'])document.documentElement.style.setProperty('--'+key,p[key]);document.querySelector('meta[name="theme-color"]').content=p.paper;}
-function say(text,seconds=2.6){$('#toast').textContent=text;$('#toast').hidden=false;toastTime=seconds;$('#live').textContent=text;}
-function save(){if(!book.save())say('このブラウザーでは記録を保存できません。航海は続けられます。',5);}
-function cancelAim(){if(pointer!==null&&canvas.hasPointerCapture?.(pointer))try{canvas.releasePointerCapture(pointer);}catch{}pointer=null;drag=null;keys.clear();}
-function hud(force=false){const woven=game.stitched.filter(Boolean).length,stamp=[game.index,game.lightCount,game.shots,game.ready,woven].join(':');if(stamp===lastHud&&!force)return;lastHud=stamp;$('#chapterNumber').textContent=String(game.index+1).padStart(2,'0');$('#chapterName').textContent=game.level.name;$('#chapterEnglish').textContent=game.level.en;
- $('#lamps').innerHTML=game.collected.map(v=>`<i class="lamp-symbol${v?' filled':''}" aria-hidden="true"></i>`).join('')+`<span class="lamp-number">${game.lightCount} / ${game.collected.length}</span>`;$('#lamps').setAttribute('aria-label',`灯 ${game.lightCount} / ${game.collected.length}`);$('#strokeCounter').innerHTML=`<strong>${String(game.shots).padStart(2,'0')}</strong> ひと漕ぎ <span class="weave-count">金継ぎ ${woven}</span>`;
- canvas.setAttribute('aria-label',`${game.index+1}番目の海、${game.level.name}。灯 ${game.lightCount}/${game.collected.length}、${game.shots}漕ぎ、金継ぎ ${woven}。${game.ready?'港がひらいています。':'すべての灯を集めてください。'}`);
+import { Flight, STEP, UPGRADES, clock, clamp } from './model.mjs?v=lumen-1.0.0';
+import { Painter } from './render.mjs?v=lumen-1.0.0';
+import { Sound } from './audio.mjs?v=lumen-1.0.0';
+import { loadRecord, saveRecord, finishRecord } from './storage.mjs?v=lumen-1.0.0';
+const $ = id => document.getElementById(id);
+const painter = new Painter($('sky'));
+let record = loadRecord(); const sound = new Sound(record.sound);
+let renderCost = 0, rawFrame = 0;
+let f = new Flight(), mode = 'title', accumulator = 0, last = performance.now(), visualTime = 0, hudTime = 0, repeatTimer = 0, toastUntil = 0, armoryKey = '', ended = false;
+const held = new Set();
+function clearInput() { held.clear(); $('rise').classList.remove('held'); repeatTimer = 0; }
+function setMode(next) {
+  mode = next; clearInput(); accumulator = 0;
+  $('titleScreen').hidden = next !== 'title'; $('hud').hidden = !['playing', 'paused', 'upgrade'].includes(next);
+  $('pauseScreen').hidden = next !== 'paused'; $('upgradeScreen').hidden = next !== 'upgrade'; $('resultScreen').hidden = next !== 'result'; $('guideScreen').hidden = next !== 'guide';
 }
-function start(index){cancelAim();artScene=null;artPrint=null;$('#artUI').hidden=true;document.body.classList.remove('view-art');clearDelay=-1;if(panel.open)panel.close();panelKind='';panelBack='';paused=false;game.load(index);mode='play';hintsTime=0;lastHud='';renderer.resetEffects();$('#title').hidden=true;$('#gameUI').hidden=false;$('#toast').hidden=true;$('#live').textContent='';toastTime=0;$('#firstGesture').hidden=book.data.best.some(Boolean)||index!==0;book.data.last=index;save();applyPalette();hud(true);audio.unlock();canvas.focus({preventScroll:true});}
-function home(){cancelAim();artScene=null;artPrint=null;$('#artUI').hidden=true;document.body.classList.remove('view-art');clearDelay=-1;if(panel.open)panel.close();panelKind='';panelBack='';mode='title';paused=false;$('#title').hidden=false;$('#gameUI').hidden=true;$('#toast').hidden=true;updateTitle();applyPalette();}
-function updateTitle(){const count=book.data.best.filter(Boolean).length;$('#beginText').textContent=count?'航海をつづける':'海へ出る';$('#continueNote').textContent=count?`${count} / 8 の海に灯がともっています。`:'八つの海を、ひとつずつ。';$('#gallery').textContent='作品集'+(book.data.prints.filter(Boolean).length?' '+book.data.prints.filter(Boolean).length:'');}
-function switchHTML(key,label){return `<div class="panel-row"><span>${label}</span><button class="switch" data-setting="${key}" role="switch" aria-checked="${book.data.settings[key]}" aria-label="${label}"></button></div>`;}
-function heading(kicker,title,close=true){return `<p class="panel-kicker">${kicker}</p><div class="panel-heading"><h2 id="panelTitle">${title}</h2>${close?'<button class="close-button" data-action="close" aria-label="閉じる">×</button>':''}</div>`;}
-function galleryHTML(){const pages=book.data.prints.flatMap((page,index)=>page?[{page,index}]:[]);return heading('YOUR LITTLE COLLECTION','航路の作品集')+(pages.length?`<div class="print-grid">${pages.map(({page,index})=>`<button class="print-card" data-print="${index}" aria-label="${LEVELS[index].name}の作品を眺める"><img alt="${LEVELS[index].name}に残した航路" data-thumbnail="${index}"><span><b>${String(index+1).padStart(2,'0')}</b> ${LEVELS[index].name}</span><small>${page.shots} 漕ぎ · 金継ぎ ${page.woven.length}</small></button>`).join('')}</div><p class="book-caption">海ごとに、最後に記録した作品を残します。<br>作品をひらくと、画像として保存できます。</p>`:`<p class="panel-note">まだ、まっさらな作品集です。<br>航海を終えると、その航路が一枚の作品に。<br>途中でも「航路を眺める」から記録できます。</p><button class="primary panel-primary" data-action="close"><span>戻る</span><span>↗</span></button>`);}
-function paintThumbnails(){const target=document.createElement('canvas'),painter=new Inkscape(target,art,pigments);painter.motion=false;for(const image of content.querySelectorAll('[data-thumbnail]')){const scene=sceneForPrint(book.data.prints[Number(image.dataset.thumbnail)]);if(!scene)continue;painter.resize(480,300,1);painter.artwork(scene,{thumbnail:true});image.src=target.toDataURL('image/jpeg',.83);}}
-function showArt(print,returnKind='pause'){const valid=normalizePrint(print);if(!valid)return;artPrint=valid;artScene=sceneForPrint(valid);artReturn=returnKind;modeBeforeArt=mode;cancelAim();if(panel.open)panel.close();panelKind='';paused=true;mode='art';$('#title').hidden=true;$('#gameUI').hidden=true;$('#artUI').hidden=false;$('#pinArt').disabled=false;$('#pinArt').textContent='作品集に記録';$('#backFromArt').textContent=returnKind==='gallery'?'← 作品集へ':'← 航海へ戻る';$('#toast').hidden=true;toastTime=0;document.body.classList.add('view-art');canvas.setAttribute('aria-label',`${artScene.level.name}の航路作品。灯の顔料と金継ぎ、金の航跡。`);applyPalette();$('#saveArt').focus({preventScroll:true});}
-function closeArt(){if(mode!=='art')return;mode=modeBeforeArt;artScene=null;artPrint=null;$('#artUI').hidden=true;document.body.classList.remove('view-art');$('#title').hidden=mode!=='title';$('#gameUI').hidden=mode!=='play';applyPalette();if(mode==='play')hud(true);else canvas.setAttribute('aria-label','余白航路。墨の島と紙の舟の海。');if(artReturn)showPanel(artReturn);else paused=false;}
-$('#backFromArt').addEventListener('click',closeArt);
-$('#pinArt').addEventListener('click',()=>{if(!artPrint)return;if(book.keepPrint(artPrint)){$('#pinArt').textContent='記録しました';$('#pinArt').disabled=true;say('作品集に、この航路を残しました。');updateTitle();}else say('作品を記録できませんでした。画像として保存できます。',4);});
-let exportURL=null,exportFile=null;
-$('#closeExport').addEventListener('click',()=>$('#exportPanel').close());
-$('#shareArt').addEventListener('click',async()=>{if(!exportFile)return;try{await navigator.share({files:[exportFile],title:'余白航路'});}catch(error){if(error.name!=='AbortError')say('PNGを保存、または画像の長押しで保存できます。',4);}});
-$('#saveArt').addEventListener('click',async()=>{if(!artScene)return;const button=$('#saveArt'),snapshot=artScene;button.disabled=true;button.textContent='画を仕立てています…';try{const output=document.createElement('canvas'),painter=new Inkscape(output,art,pigments);painter.resize(1800,1000,1);painter.motion=false;painter.artwork(snapshot);const blob=await new Promise(resolve=>output.toBlob(resolve,'image/png'));if(!blob)throw Error('empty image');if(mode!=='art'||artScene!==snapshot)return;if(exportURL)URL.revokeObjectURL(exportURL);const name=`margin-tide-${String(snapshot.index+1).padStart(2,'0')}.png`;exportURL=URL.createObjectURL(blob);exportFile=new File([blob],name,{type:'image/png'});$('#exportPreview').src=exportURL;$('#downloadArt').href=exportURL;$('#downloadArt').download=name;$('#shareArt').hidden=!navigator.canShare?.({files:[exportFile]});$('#exportPanel').showModal();$('#downloadArt').focus({preventScroll:true});}catch{say('画像を作れませんでした。もう一度お試しください。',4);}finally{button.disabled=false;button.textContent='画像を保存 ↗';}});
-
-function showPanel(kind){cancelAim();paused=true;if(['book','gallery'].includes(kind)&&['clear','end'].includes(panelKind))panelBack=panelKind;panelKind=kind;let html='';
- if(kind==='gallery')html=galleryHTML();
- if(kind==='pause')html=heading('A MOMENT ON THE WATER','ひとやすみ')+`<p class="panel-note">${String(game.index+1).padStart(2,'0')}　${game.level.name}<br>いまの航路は、このまま残っています。</p><button class="primary panel-primary" data-action="close"><span>海へ戻る</span><span>↗</span></button><div class="panel-links"><button class="text-button" data-action="retry">この海をやり直す ↺</button><button class="text-button" data-action="book">航海帖 ＋</button><button class="text-button" data-action="art">航路を眺める</button><button class="text-button" data-action="home">表紙へ</button></div><div class="panel-settings">${switchHTML('audio','音楽と効果音')}${switchHTML('motion','水面のゆらぎ')}</div>`;
- if(kind==='book')html=heading('EIGHT SEAS, ONE JOURNEY','航海帖')+`<div class="book-grid">${LEVELS.map((l,i)=>`<button class="chapter-tile" data-level="${i}" aria-label="${i+1} ${l.name}${book.data.best[i]?' 達成済み':''}"><span class="tile-number">${String(i+1).padStart(2,'0')}</span><span class="tile-name">${l.name}</span><span class="tile-marks">${book.data.best[i]?'✦'.repeat(book.data.best[i].medals)+'·'.repeat(3-book.data.best[i].medals):'—'}</span></button>`).join('')}</div><div class="panel-links"><button class="text-button" data-action="gallery">作品集をひらく ↗</button></div><p class="book-caption">どの海からでも、旅を始められます。<br>✦ 到着　✦ 少ない漕ぎ数　✦ 墨に触れずに渡航</p>`;
- if(kind==='help')html=heading('A LITTLE GUIDE TO SAILING','風のつくり方')+`<div class="help-gesture"><svg viewBox="0 0 128 34" aria-hidden="true"><circle cx="17" cy="17" r="8"/><path stroke-dasharray="2 4" d="M28 17h48"/><path d="m66 11 9 6-9 6M91 17l29-8-10 8 10 8z"/></svg><span>引いて、放す。</span></div><ol class="help-list"><li>画面のどこからでも、進みたい方向と<br>逆に引いて、指を放します。</li><li>長く引くほど遠くへ。狙っている間は、<br>海の時間がゆっくりになります。</li><li>すべての灯を集めると港がひらきます。<br>墨に触れても、灯は失いません。</li></ol><button class="primary panel-primary" data-action="close"><span>わかった</span><span>↗</span></button><p class="panel-note weave-guide">墨の島を一周すると、金継ぎの島に変わり、舟で通り抜けられます。灯と金の航路は、あなただけの作品に。</p><p class="help-keyboard">キーボード：方向キーで狙う・Spaceで漕ぐ。<br>Escapeで一時停止、Rでやり直し。</p>`;
- if(kind==='clear'||kind==='end'){const all=book.data.best.filter(Boolean).length;html=heading(kind==='end'?'A HARBOR OF LIGHT':'A PAGE IN YOUR LOGBOOK',kind==='end'?(all===8?'すべての海に、灯を。':'帰りの灯が、ともる。'):'航路が、つながった。',false)+`<div class="medals" aria-label="渡航のしるし ${game.medals()} / 3">${[0,1,2].map(i=>`<span class="${i<game.medals()?'':'empty'}" aria-hidden="true">✦</span>`).join('')}</div><div class="result-stats"><div><strong>${game.shots}</strong><small>ひと漕ぎ</small></div><div><strong>${game.lightCount}</strong><small>運んだ灯</small></div></div><p class="result-caption">${game.tears===0?'墨に触れず、きれいな航路が残りました。':'寄り道も、ひとつの航路。'}<br>${game.shots<=game.level.par?'少ない漕ぎ数のしるしがつきました。':`次の目安は ${game.level.par} 漕ぎ。何度でも旅を。`}</p><button class="primary panel-primary" data-action="${kind==='end'?'book':'next'}"><span>${kind==='end'?'航海帖をひらく':'次の海へ'}</span><span>↗</span></button><div class="panel-links"><button class="text-button" data-action="art">作品にする ↗</button><button class="text-button" data-action="retry">もう一度 ↺</button><button class="text-button" data-action="home">表紙へ</button></div>`;}
- panel.dataset.kind=kind;content.innerHTML=html;if(!panel.open)panel.showModal();if(kind==='gallery'&&book.data.prints.some(Boolean))paintThumbnails();content.querySelector('button')?.focus({preventScroll:true});
+function resize() { painter.resize(innerWidth, innerHeight); f.setView(painter.w, painter.h, true); }
+window.addEventListener('resize', resize); resize();
+function updateBest() { $('best').textContent = record.runs ? `BEST ${clock(record.bestTime)} / ${record.bestKills} KILLS${record.wins ? ` / ${record.wins} CLEAR` : ''}` : 'FIRST FLIGHT / まだ見ぬ空へ'; }
+function syncSound() { for (const button of document.querySelectorAll('.sound-toggle')) { button.setAttribute('aria-pressed', String(sound.enabled)); button.setAttribute('aria-label', sound.enabled ? 'サウンドをオフ' : 'サウンドをオン'); const txt = button.querySelector('.sound-text'); if (txt) txt.textContent = sound.enabled ? 'SOUND ON' : 'SOUND OFF'; button.style.opacity = sound.enabled ? '1' : '.65'; } }
+export function start(initialFlight) { sound.unlock(); f = initialFlight instanceof Flight ? initialFlight : new Flight(); f.setView(painter.w, painter.h, true); painter.trail = []; painter.lastTrail = 0; ended = false; armoryKey = ''; $('toast').hidden = true; $('flightTip').style.opacity = '1'; setMode('playing'); f.flap(); updateHUD(); $('sky').focus?.({ preventScroll: true }); }
+function home() { setMode('title'); f = new Flight(); f.setView(painter.w, painter.h, true); painter.trail = []; updateBest(); $('start').focus({ preventScroll: true }); }
+function pause() { if (mode !== 'playing') return; setMode('paused'); $('resume').focus({ preventScroll: true }); }
+function resume() { if (mode !== 'paused') return; setMode('playing'); f.p.hurt = Math.max(f.p.hurt, .5); last = performance.now(); }
+function toast(text, seconds = 3) { $('toast').textContent = text; $('toast').hidden = false; toastUntil = f.time + seconds; }
+function showChoices() {
+  setMode('upgrade'); $('upgradeLevel').textContent = `LEVEL ${String(f.level).padStart(2, '0')}`;
+  $('choices').replaceChildren();
+  f.choices.forEach((key, index) => {
+    const u = UPGRADES[key], button = document.createElement('button'); button.className = 'choice'; button.style.setProperty('--choice-color', u.color);
+    button.innerHTML = `<span class="choice-number">0${index + 1}</span><span class="choice-icon">${u.icon}</span><span class="choice-sub">${u.sub}</span><h3>${u.name}</h3><p>${u.text}</p><span class="choice-level">${f.skills[key] ? `LV. ${f.skills[key]} → ${Math.min(u.max, f.skills[key] + 1)}` : 'NEW ABILITY'} <span>↗</span></span>`;
+    button.setAttribute('aria-label', `${index + 1} ${u.name} ${u.text}`); button.addEventListener('click', () => choose(key)); $('choices').append(button);
+  });
+  $('choices').querySelector('button')?.focus({ preventScroll: true });
 }
-function closePanel(){if(panelKind==='clear'||panelKind==='end')return;if(panelBack){const back=panelBack;panelBack='';showPanel(back);return;}panel.close();paused=false;panelKind='';canvas.focus({preventScroll:true});}
-panel.addEventListener('cancel',e=>{e.preventDefault();closePanel();});
-content.addEventListener('click',e=>{const button=e.target.closest('button');if(!button)return;if(button.dataset.print!==undefined){showArt(book.data.prints[Number(button.dataset.print)],'gallery');return;}if(button.dataset.level!==undefined){start(Number(button.dataset.level));return;}const setting=button.dataset.setting;if(setting){book.data.settings[setting]=!book.data.settings[setting];button.setAttribute('aria-checked',String(book.data.settings[setting]));if(setting==='audio'){audio.unlock();audio.setEnabled(book.data.settings.audio);updateAudioButton();}save();return;}
- switch(button.dataset.action){case'close':closePanel();break;case'next':start(game.index+1);break;case'retry':start(game.index);break;case'home':home();break;case'book':showPanel('book');break;case'gallery':showPanel('gallery');break;case'art':showArt(makePrint(game),panelKind);break;}
+function choose(key) {
+  if (mode !== 'upgrade' || !f.choose(key)) return;
+  sound.play('upgrade'); f.events = []; f.p.hurt = Math.max(f.p.hurt, .7);
+  if (f.status === 'upgrade') showChoices(); else { setMode('playing'); toast(`${UPGRADES[key].name} — LV. ${f.skills[key]}`, 2); }
+  updateHUD(); last = performance.now();
+}
+function finish() {
+  if (ended) return; ended = true; sound.play(f.status); record = finishRecord(record, f); saveRecord(record);
+  const won = f.status === 'won'; setMode('result');
+  $('resultEyebrow').textContent = won ? 'DAWN HAS A NEW NAME' : 'FLIGHT RECORDED'; $('resultTitle').textContent = won ? '夜を越えた、その翼。' : '光は、次の翼へ。';
+  $('resultCopy').textContent = won ? '星喰いを撃破。あなたの光が、空を取り戻した。' : '落ちた星の数だけ、次の飛び方が見えてくる。';
+  $('resultSeal').textContent = won ? '☼' : '✧'; $('resultTime').textContent = clock(f.time); $('resultKills').textContent = f.kills; $('resultLevel').textContent = f.level;
+  $('resultBuild').textContent = Object.entries(f.skills).filter(([, n]) => n).map(([key, n]) => `${UPGRADES[key].icon} ${n}`).join('　'); $('retry').focus({ preventScroll: true });
+}
+function handleEvents() {
+  const events = f.events.splice(0);
+  for (const e of events) {
+    if (e.type === 'end') { finish(); return; }
+    sound.play(e.type);
+    if (e.type === 'boss') toast('THE ECLIPSE / 星喰い、来襲', 4);
+    if (e.type === 'wave') toast(e.elite ? '大きな影が、近づいている' : '星の群れが、目を覚ます', 3);
+    if (e.type === 'heal') toast(`羽根が再生した / +${e.amount || 20} HP`, 2);
+  }
+  if (f.status === 'upgrade' && mode === 'playing') showChoices();
+}
+function updateHUD() {
+  $('sky').dataset.renderMs = renderCost.toFixed(1); $('sky').dataset.frameMs = rawFrame.toFixed(1);
+  $('sky').dataset.worldY = f.p.y.toFixed(1); $('sky').dataset.velocity = f.p.vy.toFixed(1); $('sky').dataset.cameraY = f.camera.y.toFixed(1);
+  $('hpText').textContent = `${Math.ceil(f.p.hp)} / ${f.p.maxHP}`; $('hpFill').style.width = `${f.p.hp / f.p.maxHP * 100}%`; $('level').textContent = `LV. ${f.level}`;
+  $('kills').textContent = f.kills; $('xpFill').style.width = `${clamp(f.xp / f.xpNeed * 100, 0, 100)}%`;
+  $('timer').textContent = f.bossSpawned ? clock(f.time) : clock(Math.max(0, 150 - f.time)); $('phase').textContent = f.bossSpawned ? '星喰いを倒せ' : '星喰い到来まで';
+  $('altitude').textContent = `${-f.p.y >= 0 ? '+' : '−'}${Math.abs(Math.round(f.p.y))} m`;
+  $('bossHUD').hidden = !f.bossSpawned || !f.boss || f.boss.hp <= 0; if (f.boss) $('bossFill').style.width = `${Math.max(0, f.boss.hp / f.boss.maxHP * 100)}%`;
+  if (f.time > 11) $('flightTip').style.opacity = '0';
+  if (f.time > toastUntil) $('toast').hidden = true;
+  const key = JSON.stringify(f.skills); if (key !== armoryKey) { armoryKey = key; $('armory').innerHTML = `<span title="星弾">✦ <b>${1 + f.skills.power}</b></span>` + Object.entries(f.skills).filter(([k, n]) => n && k !== 'power').map(([k, n]) => `<span title="${UPGRADES[k].name}">${UPGRADES[k].icon}<b>${n}</b></span>`).join(''); }
+}
+function beginInput(source) { if (mode !== 'playing') return; sound.unlock(); held.add(source); f.flap(); repeatTimer = .23; $('rise').classList.add('held'); }
+function endInput(source) { held.delete(source); if (!held.size) $('rise').classList.remove('held'); }
+window.addEventListener('pointerdown', e => {
+  if (mode !== 'playing' || (e.button !== undefined && e.button !== 0)) return;
+  if (e.target.closest('button,a') && !e.target.closest('#rise')) return;
+  e.preventDefault(); beginInput(`p${e.pointerId}`);
+}, { passive: false });
+window.addEventListener('pointerup', e => endInput(`p${e.pointerId}`)); window.addEventListener('pointercancel', e => endInput(`p${e.pointerId}`));
+window.addEventListener('blur', () => { clearInput(); pause(); });
+window.addEventListener('keydown', e => {
+  if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
+    if (e.code === 'Space' && !['title', 'playing'].includes(mode)) return;
+    e.preventDefault(); if (e.repeat) return; if (mode === 'title') { start(); beginInput('key'); } else if (mode === 'playing') beginInput('key');
+  } else if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); if (mode === 'playing') pause(); else if (mode === 'paused') resume(); else if (mode === 'guide') home(); }
+  else if (mode === 'upgrade' && ['Digit1', 'Digit2', 'Digit3'].includes(e.code)) { e.preventDefault(); const key = f.choices[Number(e.code.slice(-1)) - 1]; if (key) choose(key); }
 });
-$('#gallery').addEventListener('click',()=>showPanel('gallery'));$('#begin').addEventListener('click',()=>start(book.data.last));$('#logbook').addEventListener('click',()=>showPanel('book'));$('#how').addEventListener('click',()=>showPanel('help'));$('#chapterButton').addEventListener('click',()=>showPanel('book'));$('#pauseButton').addEventListener('click',()=>showPanel('pause'));$('#retryButton').addEventListener('click',()=>start(game.index));
-function updateAudioButton(){const on=book.data.settings.audio;$('#audioButton').setAttribute('aria-pressed',String(on));$('#audioButton').setAttribute('aria-label',on?'音を消す':'音を出す');}
-$('#audioButton').addEventListener('click',()=>{audio.unlock();book.data.settings.audio=!book.data.settings.audio;audio.setEnabled(book.data.settings.audio);updateAudioButton();save();});
-canvas.addEventListener('pointerdown',e=>{if(mode!=='play'||paused||game.state!=='play'||game.respawn>0||pointer!==null||e.button>0)return;e.preventDefault();audio.unlock();pointer=e.pointerId;canvas.setPointerCapture(pointer);drag={sx:e.clientX,sy:e.clientY,ex:e.clientX,ey:e.clientY,vector:null};hintsTime=8;$('#firstGesture').hidden=true;},{passive:false});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==pointer||!drag)return;e.preventDefault();drag.ex=e.clientX;drag.ey=e.clientY;const a=renderer.worldPoint(drag.sx,drag.sy),b=renderer.worldPoint(drag.ex,drag.ey);drag.vector=launchVector(a.x-b.x,a.y-b.y);},{passive:false});
-canvas.addEventListener('pointerup',e=>{if(e.pointerId!==pointer||!drag)return;e.preventDefault();const a=renderer.worldPoint(drag.sx,drag.sy),b=renderer.worldPoint(e.clientX,e.clientY);const vector=launchVector(a.x-b.x,a.y-b.y);if(vector)game.launch(vector);else say('進みたい方向と逆に、少し引いて放します。',2.5);cancelAim();},{passive:false});
-canvas.addEventListener('pointercancel',()=>cancelAim());canvas.addEventListener('lostpointercapture',()=>{pointer=null;drag=null;});canvas.addEventListener('contextmenu',e=>e.preventDefault());
-const arrowMap={ArrowRight:[1,0],KeyD:[1,0],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowDown:[0,1],KeyS:[0,1],ArrowUp:[0,-1],KeyW:[0,-1]};
-function keyboardAim(){let x=0,y=0;for(const key of keys){const p=arrowMap[key];if(p){x+=p[0];y+=p[1];}}if(x||y){const length=Math.hypot(x,y);lastDirection={x:x/length,y:y/length};return {vector:{x:lastDirection.x*780,y:lastDirection.y*780}};}return null;}
-window.addEventListener('keydown',e=>{if($('#exportPanel').open)return;if(mode==='art'){if(e.code==='Escape'){e.preventDefault();closeArt();}return;}if(panel.open){if(e.code==='Escape'){e.preventDefault();closePanel();}return;}if(e.code==='Enter'&&mode==='title'){e.preventDefault();start(book.data.last);return;}if(mode!=='play')return;if(arrowMap[e.code]||['Space','Escape','KeyR'].includes(e.code))e.preventDefault();if(e.repeat)return;if(arrowMap[e.code])keys.add(e.code);if(e.code==='Space'){keyboardAim();audio.unlock();game.launch({x:lastDirection.x*780,y:lastDirection.y*780});$('#firstGesture').hidden=true;}if(e.code==='Escape')showPanel('pause');if(e.code==='KeyR')start(game.index);});
-window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{cancelAim();if(mode==='play'&&game.state==='play'&&!panel.open)showPanel('pause');});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAim();audio.suspend();if(mode==='play'&&game.state==='play'&&!panel.open)showPanel('pause');}last=performance.now();accumulator=0;});
-function processEvents(){for(const e of game.drain()){renderer.event(e,palette());audio.play(e);if(e.type==='light'){$('#live').textContent=`灯を集めました。${game.lightCount}/${game.collected.length}。`;}if(e.type==='open')say('灯がつながり、港がひらいた。',3);if(e.type==='weave')say('墨が金へ。金継ぎの島は通り抜けられます。',3.6);if(e.type==='tear')say('灯は失いません。さあ、もう一度。',2.1);if(e.type==='clear'){if(!book.finish(game.index,{shots:game.shots,tears:game.tears,medals:game.medals()},makePrint(game)))say('記録を保存できませんでした。',4);cancelAim();clearDelay=1.15;$('#live').textContent=`${game.level.name}を渡りました。${game.shots}漕ぎ。`;}}}
-function frame(now){const dt=Math.min(.08,Math.max(0,(now-last)/1000));last=now;if(!document.hidden){renderer.update(paused?0:dt);audio.update(dt,!paused);if(mode==='play'&&!paused){hintsTime+=dt;accumulator+=dt*(drag?.16:1);let ticks=0;while(accumulator>=1/120&&ticks++<14){game.step(1/120);accumulator-=1/120;}processEvents();hud();if(clearDelay>=0){clearDelay-=dt;if(clearDelay<=0){clearDelay=-1;showPanel(game.index===7?'end':'clear');}}$('#hint').textContent=drag?'狙いを決めて、指を放す。':game.respawn>0?'灯はそのまま。もう一度、海へ。':game.ready?'ひらいた港の輪へ、灯を届けよう。':hintsTime<7?game.level.note:game.shots<2?'どこからでも引いて放す。途中でも狙い直せます。':'島をぐるりと囲むと、墨が金に変わります。';}else accumulator=0;if(toastTime>0){toastTime-=dt;if(toastTime<=0)$('#toast').hidden=true;}
- renderer.draw(mode==='art'?artScene:game,{mode,aim:paused?null:drag||keyboardAim(),motion:book.data.settings.motion});}requestAnimationFrame(frame);}
-updateTitle();updateAudioButton();applyPalette();$('#begin').disabled=false;if(artFailed)say('墨の美術を読み込めませんでした。再読み込みで復元できます。',6);if(book.failed)say('記録を保存できない状態です。この画面では遊べます。',6);requestAnimationFrame(frame);
-if('serviceWorker'in navigator&&location.protocol!=='file:'&&!['terminal.local','localhost','127.0.0.1'].includes(location.hostname))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+window.addEventListener('keyup', e => { if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) { e.preventDefault(); endInput('key'); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInput(); pause(); } });
+$('start').onclick = start; $('retry').onclick = start; $('resultHome').onclick = home; $('pause').onclick = pause; $('resume').onclick = resume; $('quit').onclick = home;
+$('howto').onclick = () => { setMode('guide'); $('guideClose').focus({ preventScroll: true }); }; $('guideClose').onclick = home;
+for (const button of document.querySelectorAll('.sound-toggle')) button.onclick = () => { record.sound = sound.toggle(); saveRecord(record); syncSound(); };
+function frame(now) {
+  rawFrame = now - last; const elapsed = Math.min(.075, Math.max(0, rawFrame / 1000)); last = now; visualTime += painter.reduce && mode !== 'playing' ? 0 : elapsed;
+  if (mode === 'playing') {
+    accumulator += elapsed;
+    for (let steps = 0; accumulator >= STEP && mode === 'playing' && steps < 10; steps++) {
+      if (held.size) { repeatTimer -= STEP; if (repeatTimer <= 0) { f.flap(); repeatTimer = .23; } }
+      f.tick(STEP); accumulator -= STEP; handleEvents();
+    }
+    hudTime += elapsed; if (hudTime > .09) { updateHUD(); hudTime = 0; }
+  } else if (mode === 'title' || mode === 'guide') { f.camera.x += elapsed * (painter.reduce ? 0 : 8); f.camera.y = -painter.h / 2 + Math.sin(visualTime * .1) * 35; }
+  const drawStart = performance.now(); painter.draw(f, mode, visualTime); renderCost = performance.now() - drawStart; requestAnimationFrame(frame);
+}
+updateBest(); syncSound(); requestAnimationFrame(frame);
+if ('serviceWorker' in navigator && !['localhost', 'terminal.local', '127.0.0.1'].includes(location.hostname)) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
