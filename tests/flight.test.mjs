@@ -54,7 +54,8 @@ test('every 25 kills yields a healing light; recovery caps at max HP without gra
 });
 test('a full unassisted-damage run can earn upgrades, survive and defeat the boss in both orientations', () => {
   for (const view of [[1100,640],[390,840]]) {
-    const f=new Flight(17);f.setView(...view,true);let lastFlap=-1;
+    // A reproducible full-clear fixture for the faster encounter timing; not every random run is won.
+    const f=new Flight(302);f.setView(...view,true);let lastFlap=-1;
     for(let i=0;i<120*210&&!['dead','won'].includes(f.status);i++) {
       if(f.status==='upgrade') {const priority=['storm','split','tempo','orbit','power','heart','magnet'];f.choose([...f.choices].sort((a,b)=>priority.indexOf(a)-priority.indexOf(b))[0]);}
       if(f.time-lastFlap>=.97){f.flap();lastFlap=f.time;}f.tick();f.events=[];

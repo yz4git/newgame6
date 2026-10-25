@@ -1,14 +1,14 @@
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 export const STEP = 1 / 120;
 export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const UPGRADES = {
   power: { name: '星弾の研磨', sub: 'STARFIRE', icon: '✦', text: '星弾の威力 +35%', max: 8, color: '#f5d58d' },
-  tempo: { name: '鼓動の加速', sub: 'QUICKENING', icon: '»', text: '自動射撃の間隔 −14%', max: 6, color: '#f5d58d' },
+  tempo: { name: '連射ブースター', sub: 'QUICKENING', icon: '»', text: '自動射撃の間隔 −14%', max: 6, color: '#f5d58d' },
   split: { name: '双子の星', sub: 'TWIN STARS', icon: '⋈', text: '同時に放つ星弾 +1', max: 3, color: '#f5d58d' },
-  orbit: { name: '月の光輪', sub: 'LUNAR HALO', icon: '◎', text: '周囲を巡る光輪を追加・強化', max: 5, color: '#9be8de' },
+  orbit: { name: '衛星光輪', sub: 'LUNAR HALO', icon: '◎', text: '周囲を巡る光輪を追加・強化', max: 5, color: '#9be8de' },
   storm: { name: '天の雷針', sub: 'SKY NEEDLE', icon: 'ϟ', text: '近くの敵へ自動で連鎖雷撃', max: 5, color: '#bdb2ff' },
-  magnet: { name: '灯を呼ぶ翼', sub: 'LIGHTKEEPER', icon: '◇', text: '経験値の吸引範囲 +55', max: 4, color: '#9be8de' },
-  heart: { name: '再生する羽根', sub: 'SECOND WIND', icon: '♡', text: '最大体力 +20、体力を40回復', max: 5, color: '#efa8a2' },
+  magnet: { name: '回収フィールド', sub: 'LIGHTKEEPER', icon: '◇', text: '経験値の吸引範囲 +55', max: 4, color: '#9be8de' },
+  heart: { name: '修復ユニット', sub: 'SECOND WIND', icon: '♡', text: '最大体力 +20、体力を40回復', max: 5, color: '#efa8a2' },
 };
 export const clock = t => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 export class Flight {
@@ -19,9 +19,9 @@ export class Flight {
     this.skills = { power: 0, tempo: 0, split: 0, orbit: 0, storm: 0, magnet: 0, heart: 0 };
     this.enemies = []; this.bullets = []; this.hostiles = []; this.gems = []; this.rocks = []; this.effects = []; this.events = [];
     this.kills = 0; this.level = 1; this.xp = 0; this.xpNeed = 7; this.totalXP = 0; this.choices = [];
-    this.shotTimer = .1; this.spawnTimer = .8; this.gateTimer = 8; this.stormTimer = 2; this.flapTimer = 0;
+    this.shotTimer = .1; this.spawnTimer = .65; this.gateTimer = 8; this.stormTimer = 2; this.flapTimer = 0;
     this.id = 0; this.boss = null; this.bossSpawned = false; this.maxAltitude = 0; this.nextSwarm = 28;
-    this.spawn('wisp', 460, -55);
+    this.spawn('wisp', 410, -55);
   }
   rand() { let n = this.seed; n ^= n << 13; n ^= n >>> 17; n ^= n << 5; this.seed = n >>> 0; return this.seed / 4294967296; }
   setView(w, h, snap = false) { this.view = { w, h }; if (snap) { this.camera.x = this.p.x - w * .29; this.camera.y = this.p.y - h * .5; } }
@@ -84,7 +84,7 @@ export class Flight {
     candidates.sort((a, b) => Math.hypot(a.x - this.p.x, a.y - this.p.y) - Math.hypot(b.x - this.p.x, b.y - this.p.y));
     const target = candidates[0]; if (!target) return;
     const n = 1 + this.skills.split, angle = Math.atan2(target.y - this.p.y, target.x - this.p.x);
-    for (let i = 0; i < n; i++) { const a = angle + (i - (n - 1) / 2) * .13; this.bullets.push({ x: this.p.x + 14, y: this.p.y, ox: this.p.x, oy: this.p.y, vx: Math.cos(a) * 585 + 70, vy: Math.sin(a) * 585, life: 1.45, damage: 11 * (1 + this.skills.power * .35), target: target.id, turn: 4.5 }); }
+    for (let i = 0; i < n; i++) { const a = angle + (i - (n - 1) / 2) * .13; this.bullets.push({ x: this.p.x + 14, y: this.p.y, ox: this.p.x, oy: this.p.y, vx: Math.cos(a) * 660 + 80, vy: Math.sin(a) * 660, life: 1.45, damage: 11 * (1 + this.skills.power * .35), target: target.id, turn: 4.5 }); }
     this.emit('shot');
   }
   lightning() {
@@ -96,14 +96,14 @@ export class Flight {
     if (this.status !== 'playing') return;
     dt = Math.min(.04, dt); this.time += dt; const p = this.p;
     this.flapTimer = Math.max(0, this.flapTimer - dt); p.flap = Math.max(0, p.flap - dt * 3.5); p.hurt = Math.max(0, p.hurt - dt);
-    p.vy = Math.min(305, p.vy + 510 * dt); p.y += p.vy * dt; p.x += (108 + Math.min(20, this.time / 9)) * dt;
+    p.vy = Math.min(305, p.vy + 510 * dt); p.y += p.vy * dt; p.x += (124.2 + Math.min(23, this.time / 9 * 1.15)) * dt;
     this.maxAltitude = Math.max(this.maxAltitude, -p.y); this.camera.x = p.x - this.view.w * .29;
     const goal = p.y - this.view.h * .5 + clamp(p.vy * .15, -45, 45); this.camera.y += (goal - this.camera.y) * (1 - Math.exp(-3.8 * dt));
     this.spawnTimer -= dt; if (this.spawnTimer <= 0 && !this.bossSpawned) this.spawnWave();
     this.gateTimer -= dt; if (this.gateTimer <= 0 && !this.bossSpawned) this.spawnGate();
     if (this.time >= this.nextSwarm && this.time < 145) { this.emit('wave', { elite: this.nextSwarm % 56 === 0 }); if (this.nextSwarm % 56 === 0) this.spawn('elite', p.x + this.view.w * .75, p.y - 80); else for (let i = 0; i < 8; i++) this.spawn('wisp', p.x + this.view.w * .7 + i * 28, p.y + Math.sin(i) * 130); this.nextSwarm += 28; }
     if (this.time >= 150 && !this.bossSpawned) { this.bossSpawned = true; this.boss = this.spawn('boss', p.x + this.view.w * .76, p.y); this.emit('boss'); }
-    this.shotTimer -= dt; if (this.shotTimer <= 0) { this.fire(); this.shotTimer += .58 * Math.pow(.86, this.skills.tempo); }
+    this.shotTimer -= dt; if (this.shotTimer <= 0) { this.fire(); this.shotTimer += .50 * Math.pow(.86, this.skills.tempo); }
     this.stormTimer -= dt; if (this.stormTimer <= 0) { this.lightning(); this.stormTimer = Math.max(1.1, 3.4 - this.skills.storm * .3); }
     for (const e of this.enemies) {
       if (e.hp <= 0) continue; e.age += dt; e.hit = Math.max(0, e.hit - dt); e.orbitHit = Math.max(0, e.orbitHit - dt);
@@ -120,7 +120,7 @@ export class Flight {
     }
     for (const b of this.bullets) {
       b.ox = b.x; b.oy = b.y; b.life -= dt; const target = this.enemies.find(e => e.id === b.target && e.hp > 0);
-      if (target) { const a = Math.atan2(target.y - b.y, target.x - b.x); let diff = a - Math.atan2(b.vy, b.vx); diff = Math.atan2(Math.sin(diff), Math.cos(diff)); const angle = Math.atan2(b.vy, b.vx) + clamp(diff, -b.turn * dt, b.turn * dt); b.vx = Math.cos(angle) * 620; b.vy = Math.sin(angle) * 620; }
+      if (target) { const a = Math.atan2(target.y - b.y, target.x - b.x); let diff = a - Math.atan2(b.vy, b.vx); diff = Math.atan2(Math.sin(diff), Math.cos(diff)); const angle = Math.atan2(b.vy, b.vx) + clamp(diff, -b.turn * dt, b.turn * dt); b.vx = Math.cos(angle) * 700; b.vy = Math.sin(angle) * 700; }
       b.x += b.vx * dt; b.y += b.vy * dt; for (const e of this.enemies) if (e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < e.r + 6) { this.hit(e, b.damage); b.life = 0; break; }
     }
     for (const b of this.hostiles) { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; if (Math.hypot(b.x - p.x, b.y - p.y) < p.r + b.r) { this.damage(12); b.life = 0; } }
@@ -128,7 +128,7 @@ export class Flight {
     for (const g of this.gems) {
       g.age += dt; const d = Math.hypot(g.x - p.x, g.y - p.y);
       if (d < 160 + this.skills.magnet * 55 || g.x < p.x - this.view.w * .24) g.pull = true;
-      if (g.pull) { const amount = Math.min(1, (350 + g.age * 50) * dt / Math.max(d, 1)); g.x += (p.x - g.x) * amount; g.y += (p.y - g.y) * amount; }
+      if (g.pull) { const amount = Math.min(1, (400 + g.age * 50) * dt / Math.max(d, 1)); g.x += (p.x - g.x) * amount; g.y += (p.y - g.y) * amount; }
       if (d < 24 && !g.taken) { g.taken = true; if (g.kind === 'heal') { this.p.hp = Math.min(this.p.maxHP, this.p.hp + g.value); this.emit('heal', { amount:g.value }); } else this.collect(g.value); }
     }
     for (const e of this.effects) e.age += dt;

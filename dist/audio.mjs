@@ -8,7 +8,7 @@ export class Sound {
   play(kind) {
     if (!this.enabled || !this.ctx || this.ctx.state !== 'running') return; const t = this.ctx.currentTime;
     if (kind === 'shot') { if (t - this.lastShot < .15) return; this.lastShot = t; this.tone(750, t, .08, .09, 'sine', 1350); }
-    else if (kind === 'flap') this.tone(190, t, .15, .16, 'sine', 350);
+    else if (kind === 'flap') this.tone(95, t, .13, .12, 'triangle', 260);
     else if (kind === 'xp') this.tone(990, t, .12, .1, 'sine', 1485);
     else if (kind === 'kill') this.tone(290, t, .12, .1, 'triangle', 80);
     else if (kind === 'hurt') { this.tone(135, t, .25, .4, 'sawtooth', 60); }

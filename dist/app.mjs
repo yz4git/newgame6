@@ -1,7 +1,7 @@
-import { Flight, STEP, UPGRADES, clock, clamp } from './model.mjs?v=lumen-1.0.0';
-import { Painter } from './render.mjs?v=lumen-1.0.0';
-import { Sound } from './audio.mjs?v=lumen-1.0.0';
-import { loadRecord, saveRecord, finishRecord } from './storage.mjs?v=lumen-1.0.0';
+import { Flight, STEP, UPGRADES, clock, clamp } from './model.mjs?v=lumen-1.1.0';
+import { Painter } from './render.mjs?v=lumen-1.1.0';
+import { Sound } from './audio.mjs?v=lumen-1.1.0';
+import { loadRecord, saveRecord, finishRecord } from './storage.mjs?v=lumen-1.1.0';
 const $ = id => document.getElementById(id);
 const painter = new Painter($('sky'));
 let record = loadRecord(); const sound = new Sound(record.sound);
@@ -42,7 +42,7 @@ function choose(key) {
 function finish() {
   if (ended) return; ended = true; sound.play(f.status); record = finishRecord(record, f); saveRecord(record);
   const won = f.status === 'won'; setMode('result');
-  $('resultEyebrow').textContent = won ? 'DAWN HAS A NEW NAME' : 'FLIGHT RECORDED'; $('resultTitle').textContent = won ? '夜を越えた、その翼。' : '光は、次の翼へ。';
+  $('resultEyebrow').textContent = won ? 'DAWN HAS A NEW NAME' : 'FLIGHT RECORDED'; $('resultTitle').textContent = won ? '夜を越えた、その翼。' : '光は、次の航路へ。';
   $('resultCopy').textContent = won ? '星喰いを撃破。あなたの光が、空を取り戻した。' : '落ちた星の数だけ、次の飛び方が見えてくる。';
   $('resultSeal').textContent = won ? '☼' : '✧'; $('resultTime').textContent = clock(f.time); $('resultKills').textContent = f.kills; $('resultLevel').textContent = f.level;
   $('resultBuild').textContent = Object.entries(f.skills).filter(([, n]) => n).map(([key, n]) => `${UPGRADES[key].icon} ${n}`).join('　'); $('retry').focus({ preventScroll: true });
@@ -54,7 +54,7 @@ function handleEvents() {
     sound.play(e.type);
     if (e.type === 'boss') toast('THE ECLIPSE / 星喰い、来襲', 4);
     if (e.type === 'wave') toast(e.elite ? '大きな影が、近づいている' : '星の群れが、目を覚ます', 3);
-    if (e.type === 'heal') toast(`羽根が再生した / +${e.amount || 20} HP`, 2);
+    if (e.type === 'heal') toast(`機体を修復した / +${e.amount || 20} HP`, 2);
   }
   if (f.status === 'upgrade' && mode === 'playing') showChoices();
 }
