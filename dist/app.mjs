@@ -1,8 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.0.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.0.0';
-import {Painter} from './render.mjs?v=lumen-2.0.0';
-import {Sound} from './audio.mjs?v=lumen-2.0.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.0.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.0.1';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.0.1';
+import {Painter} from './render.mjs?v=lumen-2.0.1';
+import {Sound} from './audio.mjs?v=lumen-2.0.1';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.0.1';
+import {installTouchGuards} from './touch.mjs?v=lumen-2.0.1';
+installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
 let f=new Flight(),preview=new Flight(7,flightOptions(record)),mode='title',hangarBack='title',accumulator=0,last=performance.now(),visualTime=0,hudTime=0,repeatTimer=0,toastUntil=0,armoryKey='',ended=false,renderCost=0,rawFrame=0;

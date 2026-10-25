@@ -1,4 +1,4 @@
-import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.0.0';
+import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.0.1';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -14,7 +14,7 @@ export class Flight{
   this.chassis=CHASSIS[options.chassis]?options.chassis:'lancer';this.heat=options.heat===2?2:1;
   this.meta=Object.fromEntries(Object.entries(META).map(([k,u])=>[k,clamp(Math.floor(Number(options.meta?.[k])||0),0,u.max)]));
   const hp=CHASSIS[this.chassis].hp+this.meta.hull*8;
-  this.p={x:0,y:0,vy:0,r:15,hp,maxHP:hp,hurt:0,flap:0,shield:0};
+  this.p={x:0,y:0,vy:0,pitch:0,r:15,hp,maxHP:hp,hurt:0,flap:0,shield:0};
   this.view={w:1100,h:640};this.camera={x:-319,y:-320};
   this.skills=Object.fromEntries(Object.keys(UPGRADES).map(k=>[k,0]));this.skills[CHASSIS[this.chassis].weapon]=1;
   this.evolutions=Object.fromEntries(Object.keys(EVOLUTIONS).map(k=>[k,false]));
@@ -110,7 +110,7 @@ export class Flight{
   this.p.hp=Math.min(this.p.maxHP,this.p.hp+15);this.status='loot';this.addEffect('evolve',this.p.x,this.p.y,{life:1.2,radius:250});
  }
  resumeLoot(){if(this.status!=='loot')return false;this.loot=null;this.p.hurt=Math.max(this.p.hurt,.8);this.continueRun();return true;}
- muzzle(index=0,beam=false){const point=beam?[45,index%2?17:-17]:this.chassis==='wraith'?[46,10]:[43,index%2?24:3],a=clamp(this.p.vy*.0011,-.3,.34);return {x:this.p.x+point[0]*Math.cos(a)-point[1]*Math.sin(a),y:this.p.y+point[0]*Math.sin(a)+point[1]*Math.cos(a)};}
+ muzzle(index=0,beam=false){const point=beam?[45,index%2?17:-17]:this.chassis==='wraith'?[46,10]:[43,index%2?24:3],a=this.p.pitch;return {x:this.p.x+point[0]*Math.cos(a)-point[1]*Math.sin(a),y:this.p.y+point[0]*Math.sin(a)+point[1]*Math.cos(a)};}
  fire(){
   const targets=this.targets(750);if(!targets.length)return;
   const evo=this.evolutions.nova,n=2+this.skills.split+(evo?3:0);
@@ -172,7 +172,7 @@ export class Flight{
  tick(dt=STEP){
   if(this.status!=='playing')return;dt=Math.min(.04,dt);this.time+=dt;const p=this.p;
   this.flapTimer=Math.max(0,this.flapTimer-dt);p.flap=Math.max(0,p.flap-dt*3.5);p.hurt=Math.max(0,p.hurt-dt);
-  p.vy=Math.min(305,p.vy+510*dt);p.y+=p.vy*dt;p.x+=(124.2+Math.min(23,this.time/9*1.15))*dt;
+  p.vy=Math.min(305,p.vy+510*dt);const targetPitch=clamp(p.vy*.00056,-.145,.165);p.pitch+=(targetPitch-p.pitch)*(1-Math.exp(-9*dt));p.y+=p.vy*dt;p.x+=(124.2+Math.min(23,this.time/9*1.15))*dt;
   this.maxAltitude=Math.max(this.maxAltitude,-p.y);this.camera.x=p.x-this.view.w*.29;const goal=p.y-this.view.h*.5+clamp(p.vy*.15,-45,45);this.camera.y+=(goal-this.camera.y)*(1-Math.exp(-3.8*dt));
   const phase=Math.min(3,Math.floor(this.time/40));if(phase!==this.currentPhase){this.currentPhase=phase;this.emit('phase',{phase});}
   this.spawnTimer-=dt;if(this.spawnTimer<=0){if(!this.bossSpawned)this.spawnWave();else{if(this.enemies.filter(e=>e.type!=='boss').length<14)this.spawn('wisp',p.x+this.view.w*.72,p.y+(this.rand()-.5)*500);this.spawnTimer=1.2;}}

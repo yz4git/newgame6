@@ -1,4 +1,4 @@
-import { clamp } from './model.mjs?v=lumen-2.0.0';
+import { clamp } from './model.mjs?v=lumen-2.0.1';
 const TAU = Math.PI * 2;
 const hash = (a, b = 0) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 const oval = (c, x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); };
@@ -12,7 +12,7 @@ function makeCloud(warm = false) {
 export class Painter {
   constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.clouds = [makeCloud(), makeCloud(true)]; this.atlas=null; this.frames=null; this.flashes={}; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; }
   async loadAssets() {
-    const [data,img]=await Promise.all([fetch('./assets/mech-atlas-v2.json?v=lumen-2.0.0').then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src='./assets/mech-atlas-v2.webp?v=lumen-2.0.0';})]);
+    const [data,img]=await Promise.all([fetch('./assets/mech-atlas-v2.json?v=lumen-2.0.1').then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src='./assets/mech-atlas-v2.webp?v=lumen-2.0.1';})]);
     this.atlas=img;this.frames=data.frames;
     for(const [key,[x,y,w,h]] of Object.entries(this.frames)){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(img,x,y,w,h,0,0,w,h);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#fff1dc';ctx.fillRect(0,0,w,h);this.flashes[key]=cv;}
   }
@@ -25,7 +25,7 @@ export class Painter {
     if(!this.atlas)return this.legacyShip(x,y,tilt,boost,t,size,hurt);
     const c=this.c;c.save();c.translate(x,y);c.rotate(tilt);c.scale(size,size);if(hurt>0&&Math.sin(hurt*36)<0)c.globalAlpha=.55;
     const color=frame==='bastion'?'#8cceff':frame==='wraith'?'#85f5cb':'#ffbf86';
-    for(const y0 of [-15,14]){const l=27+boost*17+Math.sin(t*35)*3;const g=c.createLinearGradient(-37-l,0,-28,0);g.addColorStop(0,'transparent');g.addColorStop(.6,'#6ddfff90');g.addColorStop(1,'#d2f8ff');c.fillStyle=g;c.beginPath();c.moveTo(-29,y0-5);c.lineTo(-36-l,y0);c.lineTo(-29,y0+5);c.fill();}
+    for(const y0 of [-15,14]){const l=27+boost*17+Math.sin(t*8)*2;const g=c.createLinearGradient(-37-l,0,-28,0);g.addColorStop(0,'transparent');g.addColorStop(.6,'#6ddfff90');g.addColorStop(1,'#d2f8ff');c.fillStyle=g;c.beginPath();c.moveTo(-29,y0-5);c.lineTo(-36-l,y0);c.lineTo(-29,y0+5);c.fill();}
     glow(c,-23,0,47,'#70d9ff1a');this.sprite(frame,96);
     if(rig){
       c.strokeStyle='#d2dbe0';c.lineWidth=2;
@@ -245,7 +245,7 @@ export class Painter {
       if (f.time - this.lastTrail > .025 && f.status === 'playing' && mode === 'playing') { this.trail.push({ x: f.p.x - 34, y: f.p.y, t: f.time }); this.lastTrail = f.time; }
       this.trail = this.trail.filter(p => f.time - p.t < .7); c.lineCap = 'round';
       for (let i = 1; i < this.trail.length; i++) { const p = this.trail[i], prev = this.trail[i - 1], q = 1 - (f.time - p.t) / .7; c.strokeStyle = `rgba(150,219,207,${q * .32})`; c.lineWidth = q * 4; c.beginPath(); c.moveTo(prev.x, prev.y); c.lineTo(p.x, p.y); c.stroke(); }
-      this.ship(f.p.x, f.p.y, clamp(f.p.vy * .0011, -.3, .34), f.p.flap, t, 1, f.p.hurt, f.chassis, f);
+      this.ship(f.p.x, f.p.y, f.p.pitch, f.p.flap, t, 1, f.p.hurt, f.chassis, f);
     } else {
       const x = f.camera.x + this.w * (this.w / this.h < .8 ? .63 : .7), y = f.camera.y + this.h * (this.w / this.h < .8 ? .26 : .5) + Math.sin(t * .9) * 17;
       c.strokeStyle = '#e4d09e14'; c.lineWidth = 1; c.beginPath(); c.arc(x, y, 145, 0, TAU); c.stroke(); c.beginPath(); c.arc(x, y, 184, -.7, 1.6); c.stroke();

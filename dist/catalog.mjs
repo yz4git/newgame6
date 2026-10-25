@@ -1,4 +1,4 @@
-export const VERSION='2.0.0';
+export const VERSION='2.0.1';
 export const CHASSIS={
  lancer:{name:'LANCER',ja:'ランサー',tag:'誘導斉射 / 万能型',frame:'lancer',color:'#edb689',hp:100,damage:1,weapon:'missile',text:'誘導ミサイルを初期装備。火力を重ねて突破する。'},
  bastion:{name:'BASTION',ja:'バスティオン',tag:'装甲衛星 / 重装型',frame:'bastion',color:'#98c9ed',hp:135,damage:.95,weapon:'orbit',text:'衛星光輪と厚い装甲。累計60撃破で解放。'},
