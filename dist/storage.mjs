@@ -1,40 +1,8 @@
-import {validateSave} from './model.mjs?v=2.2.0';
-export const SAVE_KEY='nocturne-eclipse-save-v2',BACKUP_KEY=SAVE_KEY+'-backup',SETTINGS_KEY='nocturne-eclipse-settings-v2';
-const LEGACY_KEY='nocturne-eclipse-save-v1';
-export const DEFAULT_SETTINGS={difficulty:'standard',music:.6,effects:.8,shake:true,reducedMotion:false,contrast:false,quality:'auto',touchScale:1,touchOpacity:.72,leftHanded:false};
-export function normalizeSettings(raw={}){
-  const out={...DEFAULT_SETTINGS};for(const k of ['shake','reducedMotion','contrast','leftHanded'])if(typeof raw[k]==='boolean')out[k]=raw[k];
-  for(const [k,min,max] of [['music',0,1],['effects',0,1],['touchScale',.85,1.2],['touchOpacity',.25,1]])if(Number.isFinite(raw[k]))out[k]=Math.max(min,Math.min(max,raw[k]));
-  if(['standard','story'].includes(raw.difficulty))out.difficulty=raw.difficulty;if(['auto','high','battery'].includes(raw.quality))out.quality=raw.quality;return out;
-}
-function hash(text){let n=2166136261;for(let i=0;i<text.length;i++){n^=text.charCodeAt(i);n=Math.imul(n,16777619);}return(n>>>0).toString(16);}
-export function packSave(data){const clean=validateSave(data);if(!clean)throw new Error('保存データの形式が正しくありません');return JSON.stringify({format:'nocturne-save',revision:2,savedAt:new Date().toISOString(),checksum:hash(JSON.stringify(clean)),data:clean});}
-export function unpackSave(text){
-  if(typeof text!=='string'||text.length>100000)throw new Error('保存データを読み込めません');const raw=JSON.parse(text);
-  if(raw?.format==='nocturne-save'){if(raw.revision!==2||hash(JSON.stringify(raw.data))!==raw.checksum)throw new Error('保存データが壊れています');const data=validateSave(raw.data);if(!data)throw new Error('対応していない保存データです');return data;}
-  const data=validateSave(raw);if(!data)throw new Error('対応していない保存データです');return data;
-}
-export class SaveStore{
-  constructor(storage){this.storage=storage;this.ok=true;this.recovered=false;this.savedAt=null;}
-  load(){
-    for(const key of [SAVE_KEY,BACKUP_KEY,LEGACY_KEY]){try{const raw=this.storage?.getItem(key);if(!raw)continue;const data=unpackSave(raw);this.recovered=key===BACKUP_KEY;this.savedAt=JSON.parse(raw).savedAt||null;return data;}catch{this.ok=false;}}
-    return null;
-  }
-  save(data){
-    try{const packed=packSave(data),previous=this.storage.getItem(SAVE_KEY);if(previous){try{const old=unpackSave(previous);if(JSON.stringify(old)!==JSON.stringify(unpackSave(packed)))this.storage.setItem(BACKUP_KEY,previous);}catch{}}
-      this.storage.setItem(SAVE_KEY,packed);this.savedAt=JSON.parse(packed).savedAt;this.ok=true;return true;
-    }catch{this.ok=false;return false;}
-  }
-  readBackup(){try{const raw=this.storage?.getItem(BACKUP_KEY);return raw?unpackSave(raw):null;}catch{return null;}}
-  readSettings(){try{return normalizeSettings(JSON.parse(this.storage?.getItem(SETTINGS_KEY)||'{}'));}catch{return {...DEFAULT_SETTINGS};}}
-  writeSettings(settings){try{this.storage.setItem(SETTINGS_KEY,JSON.stringify(normalizeSettings(settings)));return true;}catch{return false;}}
-}
-
-// A title preview is never a saveable journey, even while its settings/help are open.
-export class JourneySession{
-  constructor(store){this.store=store;this.model=null;}
-  get active(){return this.model!==null;}
-  start(model){this.model=model;}
-  stop(){this.model=null;}
-  save(){if(!this.model)return null;const data=this.model.saveData();return {data,ok:this.store.save(data)};}
+export const SAVE_KEY='margin-tide-v1';
+export const DEFAULT_SETTINGS={audio:true,motion:true};
+export function normalize(value){const data=value&&typeof value==='object'?value:{};return {version:1,last:Number.isInteger(data.last)?Math.max(0,Math.min(7,data.last)):0,best:Array.from({length:8},(_,i)=>{const b=data.best?.[i];return b&&Number.isInteger(b.shots)&&b.shots>=0&&b.shots<=100000&&Number.isInteger(b.tears)&&b.tears>=0?{shots:b.shots,tears:b.tears,medals:Math.max(1,Math.min(3,Math.round(b.medals)||1))}:null;}),settings:{audio:typeof data.settings?.audio==='boolean'?data.settings.audio:true,motion:typeof data.settings?.motion==='boolean'?data.settings.motion:true}};}
+export class Logbook{
+ constructor(storage){this.storage=storage;this.failed=false;try{this.data=normalize(JSON.parse(storage.getItem(SAVE_KEY)||'null'));}catch{this.data=normalize(null);this.failed=true;}}
+ save(){try{this.storage.setItem(SAVE_KEY,JSON.stringify(this.data));this.failed=false;return true;}catch{this.failed=true;return false;}}
+ finish(index,result){const old=this.data.best[index];const record={shots:Math.max(0,Math.round(result.shots)),tears:Math.max(0,Math.round(result.tears)),medals:Math.max(1,Math.min(3,result.medals))};if(!old||record.medals>old.medals||record.medals===old.medals&&record.shots<old.shots)this.data.best[index]=record;this.data.last=Math.min(7,index+1);return this.save();}
 }
