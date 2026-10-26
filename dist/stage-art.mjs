@@ -28,9 +28,11 @@ function paintArtPlate(c,w,h,cam,sector){
   const dx=(w-dw)*.5+Math.sin(cam.x*.00036)*Math.min(22,w*.025);
   const dy=(h-dh)*.5+Math.sin(cam.y*.00028)*Math.min(20,h*.027);
   c.save();c.globalAlpha=.8;
-  c.drawImage(img,dx,dy,dw,dh);
-  c.restore();
-  return true;
+  let rendered=true;
+  try{c.drawImage(img,dx,dy,dw,dh);}
+  catch(error){artFailures.add(STAGES[sector].id);artImages[sector]=null;rendered=false;}
+  finally{c.restore();}
+  return rendered;
 }
 
 export const stageIndex=t=>Math.max(0,Math.min(STAGES.length-1,Math.floor(Math.max(0,t)/SECTOR_SECONDS)));

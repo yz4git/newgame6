@@ -1,10 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.3.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.3.0';
-import {Painter} from './render.mjs?v=lumen-2.3.0';
-import {STAGES,stageIndex} from './stage-art.mjs?v=lumen-2.3.0';
-import {Sound} from './audio.mjs?v=lumen-2.3.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.3.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-2.3.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.3.1';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.3.1';
+import {Painter} from './render.mjs?v=lumen-2.3.1';
+import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-2.3.1';
+import {Sound} from './audio.mjs?v=lumen-2.3.1';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.3.1';
+import {installTouchGuards} from './touch.mjs?v=lumen-2.3.1';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
@@ -107,7 +107,8 @@ function handleEvents(){
 function updateHUD(){
  $('sky').dataset.worldY=f.p.y.toFixed(1);$('sky').dataset.velocity=f.p.vy.toFixed(1);$('sky').dataset.cameraY=f.camera.y.toFixed(1);$('sky').dataset.frameMs=rawFrame.toFixed(1);$('sky').dataset.renderMs=renderCost.toFixed(1);
  $('hpText').textContent=`${Math.ceil(f.p.hp)} / ${f.p.maxHP}`;$('hpFill').style.width=`${f.p.hp/f.p.maxHP*100}%`;$('level').textContent=`LV. ${f.level}`;$('kills').textContent=f.kills;$('xpFill').style.width=`${clamp(f.xp/f.xpNeed*100,0,100)}%`;
- $('sector').textContent=String(stageIndex(f.time)+1).padStart(2,'0')+' / '+STAGES[stageIndex(f.time)].name;
+ const art=stageArtStatus();$('sector').textContent=String(stageIndex(f.time)+1).padStart(2,'0')+' / '+STAGES[stageIndex(f.time)].name+' · HD '+art.loaded+'/'+art.total;
+  $('sky').dataset.artLoaded=String(art.loaded);$('sky').dataset.artFailed=String(art.failed);
   $('timer').textContent=f.bossSpawned?clock(f.time):clock(Math.max(0,150-f.time));$('phase').textContent=f.bossSpawned?'星喰いを倒せ':`侵攻${f.heat===2?'Ⅱ':'Ⅰ'} / 星喰い到来まで`;
  $('altitude').textContent=`${f.p.y<=0?'+':'−'}${Math.abs(Math.round(f.p.y))} m`;$('bossHUD').hidden=!f.bossSpawned||!f.boss||f.boss.hp<=0;if(f.boss)$('bossFill').style.width=`${Math.max(0,f.boss.hp/f.boss.maxHP*100)}%`;
  if(f.time>10)$('flightTip').style.opacity='0';if(f.time>toastUntil)$('toast').hidden=true;
