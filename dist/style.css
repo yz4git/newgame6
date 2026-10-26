@@ -23,3 +23,7 @@
 .toast{left:max(22px,env(safe-area-inset-left));top:auto;bottom:max(88px,calc(env(safe-area-inset-bottom) + 88px));transform:none;max-width:min(320px,calc(100vw - 125px));white-space:normal;text-align:left;font-size:11px;line-height:1.6;letter-spacing:.04em;padding:6px 11px;background:#0a1626d9;border:1px solid #a7d9d342;pointer-events:none}
 @media(max-aspect-ratio:4/5){.toast{left:17px;top:auto;bottom:max(145px,calc(env(safe-area-inset-bottom) + 145px));font-size:10px;padding:7px 10px;max-width:calc(100vw - 115px)}}
 @media(max-height:500px) and (min-aspect-ratio:1/1){.toast{bottom:max(78px,calc(env(safe-area-inset-bottom) + 78px));font-size:9px;max-width:280px;padding:5px 10px}}
+/* A compact risk readout stays clear of the central flight lane. */
+.gate-streak{position:absolute;top:max(76px,calc(env(safe-area-inset-top) + 69px));left:max(24px,env(safe-area-inset-left));padding:4px 9px;background:#071c2bba;border-left:2px solid #a7f5d7;color:#b9f6dd;font:9px/1.3 ui-monospace,SFMono-Regular,monospace;letter-spacing:.035em;text-shadow:0 0 10px #69ffc177;max-width:180px}
+@media(max-aspect-ratio:4/5){.gate-streak{top:max(95px,calc(env(safe-area-inset-top) + 83px));left:12px;max-width:145px;font-size:8px;padding:4px 6px}}
+@media(max-height:500px) and (min-aspect-ratio:1/1){.gate-streak{top:max(65px,calc(env(safe-area-inset-top) + 59px));font-size:8px}}

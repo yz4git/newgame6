@@ -1,6 +1,6 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-4.1.0';
-import { Flight } from './model.mjs?v=lumen-4.1.0';
+import { start } from './app.mjs?v=lumen-4.2.0';
+import { Flight } from './model.mjs?v=lumen-4.2.0';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
@@ -26,7 +26,7 @@ addEventListener('message', e => {
     start(f);return;
   }
   if(e.data.wingQA.startsWith('art-')){
-    const stage=Number(e.data.wingQA.slice(4));f.time=stage*30+12;f.gateIndex=2;f.enemies=[];f.spawnGate();
+    const stage=Number(e.data.wingQA.slice(4));f.time=stage*30+12;f.gateIndex=2;f.expedition=true;f.biomeIndex=stage;f.enemies=[];f.spawnGate();
     const base=f.gates[0];const shift=base.x-f.p.x-f.view.w*.43;
     for(const g of f.gates)g.x-=shift;for(const r of f.rocks)r.x-=shift;
     f.p.y=base.center;f.setView(f.view.w,f.view.h,true);
