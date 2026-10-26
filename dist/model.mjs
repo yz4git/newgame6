@@ -1,6 +1,7 @@
-import {expeditionMethods} from './expedition.mjs?v=lumen-4.1.0';
-import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.1.0';
-import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.1.0';
+import {expeditionMethods} from './expedition.mjs?v=lumen-4.2.0';
+import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.2.0';
+import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.2.0';
+import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.2.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -20,7 +21,7 @@ export class Flight{
   this.view={w:1100,h:640};this.camera={x:-319,y:-320};
   this.skills=Object.fromEntries(Object.keys(UPGRADES).map(k=>[k,0]));this.skills[CHASSIS[this.chassis].weapon]=1;
   this.evolutions=Object.fromEntries(Object.keys(EVOLUTIONS).map(k=>[k,false]));
-  this.enemies=[];this.bullets=[];this.hostiles=[];this.gems=[];this.rocks=[];this.gates=[];this.gateDodges=0;this.effects=[];this.events=[];
+  this.enemies=[];this.bullets=[];this.hostiles=[];this.gems=[];this.rocks=[];this.gates=[];this.gateDodges=0;this.gateStreak=0;this.bestGateStreak=0;this.flightBonusParts=0;this.effects=[];this.events=[];
   this.kills=0;this.eliteKills=0;this.level=1;this.xp=0;this.xpNeed=7;this.totalXP=0;this.choices=[];this.pendingChests=0;this.loot=null;
   this.rerolls=2+this.meta.analysis;this.revives=this.meta.rescue;this.revivesUsed=0;this.chestCount=0;
   this.damageStats={star:0,missile:0,beam:0,orbit:0,storm:0,drone:0};this.damageTaken=0;this.lastDamage='';
@@ -34,6 +35,7 @@ export class Flight{
  choiceRand(){let n=this.choiceSeed;n^=n<<13;n^=n>>>17;n^=n<<5;this.choiceSeed=n>>>0;return this.choiceSeed/4294967296;}
  setView(w,h,snap=false){this.view={w,h};if(this.boss){this.boss.r=Math.min(88,Math.max(50,w*.16));this.boss.x=Math.min(this.boss.x,this.p.x+Math.min(430,Math.max(80,w*.71-this.boss.r*1.525-24)));}if(snap){this.camera.x=this.p.x-w*.29;this.camera.y=this.p.y-h*.5;}}
  emit(type,data={}){this.events.push({type,...data});}
+ breakGateStreak(){if(this.gateStreak){this.gateStreak=0;this.emit('streakLost');}}
  flap(){if(this.status!=='playing'||this.flapTimer>0)return false;this.p.vy=-255;this.p.flap=1;this.flapTimer=.13;this.emit('flap');return true;}
  addEffect(kind,x,y,extra={}){this.effects.push({kind,x,y,age:0,life:.5,...extra});}
  get power(){return CHASSIS[this.chassis].damage*(1+this.skills.power*.28)*(1+this.meta.reactor*.05)*(this.mod==='glass'?1.3:this.mod==='recycler'?.88:this.mod==='rapid'?.85:this.mod==='thermal'?.92:1)*(this.p.hp<this.p.maxHP*.5?1+this.skills.focus*.18:1);}
@@ -73,7 +75,7 @@ export class Flight{
   for(let j=0;j<count;j++){
    const center=base+patterns[theme][j]*direction,gateId=++this.id,gx=x+j*spacing;
    const variant=(index+j)%2;
-   this.gates.push({id:gateId,x:gx,center,gap,theme,variant,failed:false,passed:false,exit:gx+95});
+   this.gates.push({id:gateId,x:gx,center,gap,theme,variant,failed:false,passed:false,exit:gx+95,hazard:this.expedition&&index>0,hazardPhase:this.rand()*3.6});
    for(const side of [-1,1]){
     const rx=86+(theme===4?20:0)+this.rand()*14,ry=220+this.rand()*24;
     this.rocks.push({id:++this.id,gateId,x:gx,y:center+side*(gap/2+ry),rx,ry,phase:this.rand()*10,side,center,gap,theme,variant,wall:this.expedition});
@@ -85,6 +87,7 @@ export class Flight{
 
  damage(amount,source='敵の攻撃'){
   const p=this.p;if(p.hurt>0||this.status!=='playing')return;
+  this.breakGateStreak();
   if(p.shield){if(this.hasRelic('mirror'))this.explode(p.x,p.y,170,100*this.power,'pulse');p.shield=0;this.timers.shield=Math.max(3.8,9-this.skills.shield*.9);p.hurt=.32;this.addEffect('guard',p.x,p.y,{life:.5,radius:100});this.emit('guard');return;}
   const actual=Math.max(2,Math.round(amount)-this.skills.armor*2-this.meta.armor);p.hp=Math.max(0,p.hp-actual);p.hurt=.8;this.damageTaken+=actual;this.lastDamage=source;
   this.addEffect('hurt',p.x,p.y,{life:.7,amount:actual,source});this.emit('hurt');
@@ -232,7 +235,17 @@ export class Flight{
   }
   for(const b of this.hostiles){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(this.evolutions.aegis&&Math.hypot(b.x-p.x,b.y-p.y)<95){b.life=0;continue;}b.arming=Math.max(0,(b.arming||0)-dt);if(!b.arming&&Math.hypot(b.x-p.x,b.y-p.y)<p.r+b.r){this.damage(b.damage,b.source);b.life=0;}}
   for(const r of this.rocks){if(circleHitsTerrain(p,r)){const gate=this.gates.find(g=>g.id===r.gateId);if(gate)gate.failed=true;this.damage(23,'浮遊装甲への接触');p.vy+=(p.y<r.y?-1:1)*dt*350;}}
-  for(const gate of this.gates)if(!gate.passed&&p.x>(gate.exit??gate.x+95)){gate.passed=true;if(!gate.failed&&Math.abs(p.y-gate.center)<gate.gap/2){this.gateDodges++;this.collect(this.sectorMod==='ruins'?4:2);this.addEffect('gateClear',p.x,p.y,{life:.8,radius:118,color:'#8be8d4'});this.emit('gatePass',{count:this.gateDodges});}}
+  for(const gate of this.gates){const h=gateHazard(gate,this.time);if(!gate.passed&&hitsGateHazard(p,h)){gate.failed=true;this.damage(19,HAZARD_NAMES[gate.theme]+'への接触');}}
+  for(const gate of this.gates)if(!gate.passed&&p.x>(gate.exit??gate.x+95)){
+   gate.passed=true;
+   if(!gate.failed&&Math.abs(p.y-gate.center)<gate.gap/2){
+    this.gateDodges++;this.gateStreak++;this.bestGateStreak=Math.max(this.bestGateStreak,this.gateStreak);
+    const multiplier=Math.min(5,this.gateStreak),xp=(this.sectorMod==='ruins'?4:2)*multiplier;
+    this.flightBonusParts+=multiplier;this.collect(xp);
+    this.addEffect('gateClear',p.x,p.y,{life:.8,radius:118,color:'#8be8d4'});
+    this.emit('gatePass',{count:this.gateDodges,streak:this.gateStreak,multiplier,xp,parts:multiplier});
+   }else this.breakGateStreak();
+  }
   this.gates=this.gates.filter(g=>p.x<g.x+this.view.w*.75);
   for(const g of this.gems){
    g.age+=dt;const d=Math.hypot(g.x-p.x,g.y-p.y),range=150+this.skills.magnet*55+this.meta.recovery*12+(this.hasRelic('courier')?80:0)+(g.kind==='chest'?70:0);

@@ -1,10 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.1.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.1.0';
-import {Painter} from './render.mjs?v=lumen-4.1.0';
-import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.1.0';
-import {Sound} from './audio.mjs?v=lumen-4.1.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.1.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-4.1.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.2.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.2.0';
+import {Painter} from './render.mjs?v=lumen-4.2.0';
+import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.2.0';
+import {Sound} from './audio.mjs?v=lumen-4.2.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.2.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-4.2.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
@@ -62,7 +62,7 @@ function finish(){
  $('resultEyebrow').textContent=won?'ECLIPSE DESTROYED / RETURN TO BASE':'RECOVER / REBUILD / RETURN';$('resultTitle').textContent=won?'夜を越えた、その翼。':'再起動は、ここから。';
  $('resultTime').textContent=clock(f.time);$('resultKills').textContent=f.kills;$('resultLevel').textContent=f.level;
  const advice=f.lastDamage.includes('砲撃')?'予告線の後に高度を変えるか、シールドで防御を。':f.lastDamage.includes('接触')?'短い噴射で間合いを作り、衛星や装甲を重ねよう。':'回収したパーツで恒久強化。別の機体と進化構成も試せます。';
- $('resultCause').textContent=`${CONTRACTS[f.contract].name} ${Math.floor(contractProgress(f))}/${CONTRACTS[f.contract].goal}${transaction.contractBonus?' 達成 +'+transaction.contractBonus+'パーツ':''} / 遺物 ${f.relics.map(k=>RELICS[k].name).join('・')||'なし'} / ${won?'星喰いを撃破。侵攻Ⅱで次の限界へ。':`${f.lastDamage||'機体損失'} / ${advice}`}${f.gateDodges?` / ゲート回避 ${f.gateDodges}`:''}`;
+ $('resultCause').textContent=`${CONTRACTS[f.contract].name} ${Math.floor(contractProgress(f))}/${CONTRACTS[f.contract].goal}${transaction.contractBonus?' 達成 +'+transaction.contractBonus+'パーツ':''} / 遺物 ${f.relics.map(k=>RELICS[k].name).join('・')||'なし'} / ${won?'星喰いを撃破。侵攻Ⅱで次の限界へ。':`${f.lastDamage||'機体損失'} / ${advice}`}${f.gateDodges?` / 通路突破 ${f.gateDodges}・最高連続 ${f.bestGateStreak}・ボーナス +${f.flightBonusParts}パーツ`:''}`;
  $('resultBuild').textContent=weaponKeys.filter(k=>k==='star'||f.skills[k]).map(k=>{const id=evolutionFor(k);return f.evolutions[id]?`${EVOLUTIONS[id].icon} ${EVOLUTIONS[id].name}`:`${weaponIcons[k]} LV.${k==='star'?1+f.skills.power:f.skills[k]}`;}).join('　');
  const rows=Object.entries(f.damageStats).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]).slice(0,3),total=Object.values(f.damageStats).reduce((s,n)=>s+n,0)||1;
  $('damageSummary').innerHTML=rows.map(([key,n])=>`<div class="damage-row"><span>${weaponName(key)}</span><span>${Math.round(n/total*100)}% / ${Math.round(n).toLocaleString()} DMG</span></div>`).join('');
@@ -101,7 +101,8 @@ function handleEvents(){
   else if(e.type==='phase')toast('SECTOR 0'+(e.phase+1)+' / '+STAGES[e.phase].name+' / '+STAGES[e.phase].ja,3.5);
   else if(e.type==='sectorChosen')toast(STAGES[e.biome].ja+' / '+SECTOR_MODS[e.mod].name,3);
   else if(e.type==='relicChosen')toast('遺物：'+RELICS[e.key].name,2.3);
-  else if(e.type==='gatePass')toast(`障害ゲート突破 / EXP +2 / ${e.count}回`,1.5);
+  else if(e.type==='gatePass')toast(`無傷突破 ${e.streak}連続 ×${e.multiplier} / EXP +${e.xp}・パーツ +${e.parts}`,1.8);
+  else if(e.type==='streakLost')toast('連続突破が途切れた',1.1);
   else if(e.type==='heal')toast(`機体を修復 / +${e.amount} HP`,1.5);
   else if(e.type==='revive')toast('REBOOT / コア再起動',2.6);
   else if(e.type==='upgrade')toast(`${UPGRADES[e.key].name} / LV.${f.skills[e.key]}`,1.6);
@@ -111,6 +112,7 @@ function handleEvents(){
 function updateHUD(){
  $('sky').dataset.worldY=f.p.y.toFixed(1);$('sky').dataset.velocity=f.p.vy.toFixed(1);$('sky').dataset.cameraY=f.camera.y.toFixed(1);$('sky').dataset.frameMs=rawFrame.toFixed(1);$('sky').dataset.renderMs=renderCost.toFixed(1);
  $('hpText').textContent=`${Math.ceil(f.p.hp)} / ${f.p.maxHP}`;$('hpFill').style.width=`${f.p.hp/f.p.maxHP*100}%`;$('level').textContent=`LV. ${f.level}`;$('kills').textContent=f.kills;$('xpFill').style.width=`${clamp(f.xp/f.xpNeed*100,0,100)}%`;
+ $('gateStreak').textContent=f.gateStreak?`通路 ${f.gateStreak}連続 ×${Math.min(5,f.gateStreak)}`:'通路を無傷で抜けて連続ボーナス';
  const art=stageArtStatus();$('sector').textContent=String(stageIndex(f.time)+1).padStart(2,'0')+' / '+STAGES[f.getBiome()].name;
   $('sky').dataset.artLoaded=String(art.loaded);$('sky').dataset.artFailed=String(art.failed);
   $('timer').textContent=f.bossSpawned?clock(Math.max(0,f.time-150)):clock(Math.max(0,150-f.time));$('phase').textContent=f.bossSpawned?BOSSES[f.bossVariant].ja+'を倒せ':`侵攻${f.heat===2?'Ⅱ':'Ⅰ'} / ${SECTOR_MODS[f.sectorMod].name}`;

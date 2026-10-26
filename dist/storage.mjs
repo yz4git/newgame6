@@ -1,4 +1,4 @@
-import {CHASSIS,META,OBJECTIVES,MODS,RELICS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent} from './catalog.mjs?v=lumen-4.1.0';
+import {CHASSIS,META,OBJECTIVES,MODS,RELICS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent} from './catalog.mjs?v=lumen-4.2.0';
 const KEY='lumen-wing-v1';
 const integer=(n,max=1e9)=>Math.max(0,Math.min(max,Number.isFinite(Number(n))?Math.floor(Number(n)):0));
 export function normalizeRecord(v={}){
@@ -14,7 +14,7 @@ export function normalizeRecord(v={}){
 }
 export function loadRecord(storage){try{storage||=globalThis.localStorage;return normalizeRecord(JSON.parse(storage.getItem(KEY)||'{}'));}catch{return normalizeRecord();}}
 export function saveRecord(record,storage){try{storage||=globalThis.localStorage;storage.setItem(KEY,JSON.stringify(normalizeRecord(record)));return true;}catch{return false;}}
-export function runReward(f){return Math.max(1,Math.floor((Math.floor((f.time||0)/5)+Math.floor((f.kills||0)/3)+(f.eliteKills||0)*5+Object.values(f.evolutions||{}).filter(Boolean).length*4+(f.status==='won'?30:0))*(f.heat===2?1.4:1)*(1+(f.skills?.salvage||0)*.1+(f.relics?.includes('courier')?.2:0))*(f.expedition?f.sectorRewards/f.sectorCount:1)));}
+export function runReward(f){return Math.max(1,Math.floor((Math.floor((f.time||0)/5)+Math.floor((f.kills||0)/3)+(f.eliteKills||0)*5+Object.values(f.evolutions||{}).filter(Boolean).length*4+(f.status==='won'?30:0))*(f.heat===2?1.4:1)*(1+(f.skills?.salvage||0)*.1+(f.relics?.includes('courier')?.2:0))*(f.expedition?f.sectorRewards/f.sectorCount:1))+Math.min(150,Math.max(0,Math.floor(f.flightBonusParts||0))));}
 export function settleRun(previous,f){
  const old=normalizeRecord(previous);const id=f.runId||`${f.time}:${f.kills}:${f.status}`;
  if(old.recentRuns.includes(id))return {record:old,reward:0,bonus:0,completed:[],unlocks:[]};

@@ -16,7 +16,7 @@ test('actual material layers render in five biomes under responsive cameras',asy
   const count={draw:0,stroke:0};
   class ImageStub {
     constructor(){this.complete=false;this.naturalWidth=0;this.width=1024;this.height=1024;}
-    set src(v){assert.ok(v.endsWith('.webp?v=lumen-4.1.0'));this.complete=true;this.naturalWidth=1024;this.onload?.();}
+    set src(v){assert.ok(v.endsWith('.webp?v=lumen-4.2.0'));this.complete=true;this.naturalWidth=1024;this.onload?.();}
   }
   const context=()=>new Proxy({globalAlpha:1,filter:'none',createRadialGradient(){return {addColorStop(){}}}},{
     get(obj,k){
