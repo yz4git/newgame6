@@ -1,14 +1,15 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.2.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.2.0';
-import {Painter} from './render.mjs?v=lumen-4.2.0';
-import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.2.0';
-import {Sound} from './audio.mjs?v=lumen-4.2.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.2.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-4.2.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.3.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.3.0';
+import {Painter} from './render.mjs?v=lumen-4.3.0';
+import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.3.0';
+import {Sound} from './audio.mjs?v=lumen-4.3.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.3.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-4.3.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
 let f=new Flight(),preview=new Flight(7,flightOptions(record)),mode='title',hangarBack='title',accumulator=0,last=performance.now(),visualTime=0,hudTime=0,repeatTimer=0,toastUntil=0,armoryKey='',ended=false,renderCost=0,rawFrame=0;
+let impactSerial=0;
 const held=new Set();
 const weaponKeys=['star',...Object.keys(UPGRADES).filter(k=>UPGRADES[k].type==='weapon')];const weaponIcons={star:'✦',...Object.fromEntries(Object.entries(UPGRADES).filter(([,u])=>u.type==='weapon').map(([k,u])=>[k,u.icon]))};
 const weaponName=k=>k==='star'?'星弾':UPGRADES[k].name;
@@ -31,6 +32,15 @@ function home(){setMode('title');refreshPreview();updateTitle();$('start').focus
 function pause(){if(mode!=='playing')return;setMode('paused');$('pauseBuild').innerHTML=weaponKeys.filter(k=>k==='star'||f.skills[k]).map(k=>{const id=evolutionFor(k);return f.evolutions[id]?`<span class="evo-text">${EVOLUTIONS[id].name}</span>`:`${weaponName(k)} LV.${k==='star'?1+f.skills.power:f.skills[k]}`;}).join(' / ')+`<br>威力 ${Math.round(f.power*100)}%　軽減 ${f.skills.armor*2+f.meta.armor}　再抽選 ${f.rerolls}<br>改造：${MODS[f.mod].name}<br>${MODS[f.mod].text}<br>${f.relics.map(k=>RELICS[k].name+'：'+RELICS[k].text).join('<br>')}`;$('resume').focus({preventScroll:true});}
 function resume(){if(mode!=='paused')return;setMode('playing');f.p.hurt=Math.max(f.p.hurt,.5);last=performance.now();}
 function toast(text,seconds=2.7){$('toast').textContent=text;$('toast').hidden=false;toastUntil=f.time+seconds;}
+function showImpact(e){
+ const shield=e.type==='guard',terrain=e.source==='浮遊装甲への接触',hazard=e.source?.includes('への接触')&&!terrain;
+ const what=terrain?'地形':hazard?'仕掛け':e.source?.includes('接触')?'敵機':'敵弾';
+ $('impactNotice').textContent=shield?`${what}に接触 / シールド防御`: `${what}に接触・被弾  −${e.amount} HP / 残り ${Math.ceil(e.hp)}`;
+ if(!terrain&&!hazard&&!e.source?.includes('接触')&&!shield)$('impactNotice').textContent=`被弾  −${e.amount} HP / 残り ${Math.ceil(e.hp)}`;
+ $('impactNotice').className='impact-notice '+(shield?'shield':'damage');$('impactNotice').hidden=false;
+ $('impactFlash').className='impact-flash '+(shield?'shield':'damage');$('impactFlash').hidden=false;
+ const serial=++impactSerial;setTimeout(()=>{if(serial===impactSerial){$('impactNotice').hidden=true;$('impactFlash').hidden=true;}},3200);
+}
 function showChoices(){
  setMode('upgrade');$('upgradeLevel').textContent=`LEVEL ${String(f.level).padStart(2,'0')} / 兵装 ${weaponKeys.filter(k=>k!=='star'&&f.skills[k]>0).length}/5枠`;$('choices').replaceChildren();
  f.choices.forEach((key,index)=>{
@@ -95,6 +105,7 @@ function renderHangar(notice=''){
 function handleEvents(){
  for(const e of f.events.splice(0)){
   if(e.type==='end'){finish();return;}sound.play(e.type);
+  if(e.type==='hurt'||e.type==='guard'&&e.source)showImpact(e);
   if(e.type==='boss')toast(BOSSES[f.bossVariant].en+' / '+BOSSES[f.bossVariant].ja+'、来襲',3.6);
   else if(e.type==='bossphase')toast(BOSSES[f.bossVariant].ja+(e.phase===2?' / 全砲門解放':' / 反撃フェーズ'),2.3);
   else if(e.type==='eliteIncoming')toast('敵重装母艦 / 補給箱を狙え',2.7);

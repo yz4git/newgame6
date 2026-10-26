@@ -1,0 +1,11 @@
+{
+  "method": "built-in image_gen, transparent background; alpha crop and WebP optimization for game runtime",
+  "assets": {
+    "flare": "compact solar flare reactor core, asymmetric roiling incandescent plasma sphere with burnt metallic fragments, transparent",
+    "coral": "bioluminescent living coral heart, irregular turquoise reef tendrils and luminous pearl nucleus, transparent",
+    "prism": "vertical jagged crystal lightning emitter, prismatic blue-white mineral shard with fracture lines, transparent",
+    "lava": "vertical molten lava eruption from rugged volcanic vent, hot liquid tongues and cinders, transparent",
+    "shutter": "vertical industrial armored fortress shutter tooth with stacked metal plates and red warning slits, transparent"
+  },
+  "constraints": "Single isolated high-detail arcade science fiction game asset, no interface, symbol, text, watermark or scenery"
+}

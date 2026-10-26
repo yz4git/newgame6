@@ -1,7 +1,7 @@
-import {expeditionMethods} from './expedition.mjs?v=lumen-4.2.0';
-import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.2.0';
-import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.2.0';
-import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.2.0';
+import {expeditionMethods} from './expedition.mjs?v=lumen-4.3.0';
+import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.3.0';
+import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.3.0';
+import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.3.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -88,9 +88,9 @@ export class Flight{
  damage(amount,source='敵の攻撃'){
   const p=this.p;if(p.hurt>0||this.status!=='playing')return;
   this.breakGateStreak();
-  if(p.shield){if(this.hasRelic('mirror'))this.explode(p.x,p.y,170,100*this.power,'pulse');p.shield=0;this.timers.shield=Math.max(3.8,9-this.skills.shield*.9);p.hurt=.32;this.addEffect('guard',p.x,p.y,{life:.5,radius:100});this.emit('guard');return;}
+  if(p.shield){if(this.hasRelic('mirror'))this.explode(p.x,p.y,170,100*this.power,'pulse');p.shield=0;this.timers.shield=Math.max(3.8,9-this.skills.shield*.9);p.hurt=.32;this.addEffect('guard',p.x,p.y,{life:.5,radius:100,source});this.emit('guard',{source});return;}
   const actual=Math.max(2,Math.round(amount)-this.skills.armor*2-this.meta.armor);p.hp=Math.max(0,p.hp-actual);p.hurt=.8;this.damageTaken+=actual;this.lastDamage=source;
-  this.addEffect('hurt',p.x,p.y,{life:.7,amount:actual,source});this.emit('hurt');
+  this.addEffect('hurt',p.x,p.y,{life:.85,amount:actual,source});this.emit('hurt',{amount:actual,source,hp:p.hp,maxHP:p.maxHP});
   if(p.hp<=0){
    if(this.revives>0){this.revives--;this.revivesUsed++;p.hp=Math.ceil(p.maxHP*.5);p.hurt=2.2;this.hostiles=[];this.addEffect('reboot',p.x,p.y,{life:1.2,radius:260});this.emit('revive');}
    else{this.status='dead';this.emit('end',{won:false});}
