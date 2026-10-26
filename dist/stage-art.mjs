@@ -10,15 +10,17 @@ export const STAGES = Object.freeze([
 export const SECTOR_SECONDS=30;
 // Product-art backdrops: 1800x1000 self-contained scene paintings, no CDN or fonts.
 const artImages = Array(STAGES.length).fill(null);
+const artFailures = new Set();
+export const stageArtStatus=()=>({loaded:artImages.filter(img=>img?.complete&&img?.naturalWidth>0).length,total:STAGES.length,failed:artFailures.size});
 let artLoad = null;
 export function preloadStageArt(){
   if(typeof Image==='undefined')return Promise.resolve(false);
   if(artLoad)return artLoad;
   artLoad=Promise.all(STAGES.map((stage,i)=>new Promise(resolve=>{
     const img=new Image();img.decoding='async';
-    img.onload=()=>{artImages[i]=img;resolve(true);};
-    img.onerror=()=>resolve(false); // Keep the deterministic Canvas backdrop as an offline fallback.
-    img.src='./assets/scene-'+stage.id+'.svg?v=lumen-2.3.0';
+    img.onload=()=>{artImages[i]=img;artFailures.delete(stage.id);resolve(true);};
+    img.onerror=()=>{artFailures.add(stage.id);resolve(false);}; // Canvas fallback.
+    img.src=new URL('./assets/scene-'+stage.id+'.svg?v=lumen-2.3.1',import.meta.url).href;
   })));
   return artLoad;
 }
