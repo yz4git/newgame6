@@ -68,13 +68,14 @@ test('expedition campaign can resolve all decisions and defeat each boss pattern
  const meta=Object.fromEntries(Object.entries(META).map(([k,u])=>[k,u.max]));
  const score=(f,k)=>k==='heart'?(f.p.hp<f.p.maxHP*.6?100:1):k==='shield'?(f.skills.shield?5:95):k==='armor'?(f.skills.armor<2?65:5):k==='missile'?(f.skills.missile<4?90:50):k==='split'?(f.skills.split<2?88:35):k==='beam'?(f.skills.beam<4?80:45):k==='power'?(f.skills.power<4?82:40):k==='tempo'?(f.skills.tempo<3?78:45):k==='magnet'?(f.skills.magnet<2?60:10):k==='orbit'?(f.skills.orbit<4?55:30):k==='storm'?50:k==='drone'?45:15;
  for(const view of [[1100,640],[390,840]])for(let variant=0;variant<3;variant++){
-  const f=new Flight(17+variant,{chassis:'bastion',meta,routes:true});f.bossVariant=variant;f.setView(...view,true);let last=-1;
+  const f=new Flight(17+variant,{chassis:'bastion',meta,routes:true});f.bossVariant=variant;f.setView(...view,true);let last=-1,target=0;
   for(let i=0;i<120*260&&!['dead','won'].includes(f.status);i++){
    if(f.status==='route'){let index=f.routeChoices.findIndex(r=>r.mod==='haven'||r.mod==='clear');f.chooseRoute(index<0?0:index);}
    if(f.status==='relic')f.chooseRelic(f.relicChoices[0]);
    if(f.status==='upgrade')f.choose([...f.choices].sort((a,b)=>score(f,b)-score(f,a))[0]);
    if(f.status==='loot')f.resumeLoot();
-   if(f.time-last>.97){f.flap();last=f.time;}f.tick();f.events=[];
+   const gate=f.gates.filter(g=>!g.passed&&g.x>f.p.x-100).sort((a,b)=>a.x-b.x)[0];if(gate)target=gate.center;
+   if(f.p.y+f.p.vy*.28>target+12&&f.time-last>.2){f.flap();last=f.time;}f.tick();f.events=[];
   }
   assert.equal(f.status,'won',JSON.stringify({view,variant,time:f.time,hp:f.p.hp,kills:f.kills,level:f.level,cause:f.lastDamage}));
   assert.equal(f.relics.length,4);assert.ok(f.hostiles.length<=350&&f.enemies.length<=190&&f.mines.length<=18);

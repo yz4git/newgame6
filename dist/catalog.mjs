@@ -1,4 +1,4 @@
-export const VERSION='4.0.0';
+export const VERSION='4.1.0';
 export const CHASSIS={
  lancer:{name:'LANCER',ja:'ランサー',tag:'誘導斉射 / 万能型',frame:'lancer',color:'#edb689',hp:100,damage:1,weapon:'missile',text:'誘導ミサイルを初期装備。火力を重ねて突破する。'},
  bastion:{name:'BASTION',ja:'バスティオン',tag:'装甲衛星 / 重装型',frame:'bastion',color:'#98c9ed',hp:135,damage:.95,weapon:'orbit',text:'衛星光輪と厚い装甲。累計60撃破で解放。'},
@@ -121,3 +121,5 @@ OBJECTIVES.push(
  {id:'collector',name:'遺物収集家',text:'異なる遺物を8種類発見',field:'relicCount',goal:8,reward:50}
 );
 export function contractProgress(f){const c=CONTRACTS[f.contract];if(!c)return 0;const value=c.field==='evolutionCount'?Object.values(f.evolutions).filter(Boolean).length:c.field==='wonCount'?Number(f.status==='won'):f[c.field]||0;return Math.min(c.goal,value);}
+
+export const BOSSES=[{en:'THE ECLIPSE',ja:'星喰い'},{en:'SIEGE REGENT',ja:'重砲王'},{en:'SPIRAL CROWN',ja:'螺旋冠'}];

@@ -1,8 +1,9 @@
-import {CHASSIS} from './catalog.mjs?v=lumen-4.0.0';
-import {preloadArcade,paintArcadeTerrain,paintArcadeBackdrop} from './arcade-art.mjs?v=lumen-4.0.0';
-import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-4.0.0';
-import { clamp } from './model.mjs?v=lumen-4.0.0';
-import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-4.0.0';
+import {terrainTiles} from './terrain.mjs?v=lumen-4.1.0';
+import {CHASSIS} from './catalog.mjs?v=lumen-4.1.0';
+import {preloadArcade,paintArcadeTerrain,paintArcadeBackdrop} from './arcade-art.mjs?v=lumen-4.1.0';
+import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-4.1.0';
+import { clamp } from './model.mjs?v=lumen-4.1.0';
+import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-4.1.0';
 const TAU = Math.PI * 2;
 const hash = (a, b = 0) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 const oval = (c, x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); };
@@ -21,18 +22,18 @@ const ZONES=[
 export class Painter {
   constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.atlas=null; this.frames=null; this.flashes={}; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; preloadStageArt().catch(()=>{});preloadArcade().catch(()=>{}); preloadMaterials().catch(()=>{}); }
   async loadAssets() {
-    const [data,img]=await Promise.all([fetch(new URL('./assets/arcade-atlas-v3.json?v=lumen-4.0.0',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/arcade-atlas-v3.webp?v=lumen-4.0.0',import.meta.url).href;})]);
+    const [data,img]=await Promise.all([fetch(new URL('./assets/arcade-atlas-v3.json?v=lumen-4.1.0',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/arcade-atlas-v3.webp?v=lumen-4.1.0',import.meta.url).href;})]);
     await preloadArcade();
-    const [extra,img2]=await Promise.all([fetch(new URL('./assets/enemies-v4.json?v=lumen-4.0.0',import.meta.url)).then(r=>{if(!r.ok)throw Error('enemy metadata');return r.json();}),new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=new URL('./assets/enemies-v4.webp?v=lumen-4.0.0',import.meta.url);})]);
+    const [extra,img2]=await Promise.all([fetch(new URL('./assets/enemies-v4.json?v=lumen-4.1.0',import.meta.url)).then(r=>{if(!r.ok)throw Error('enemy metadata');return r.json();}),new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=new URL('./assets/enemies-v4.webp?v=lumen-4.1.0',import.meta.url);})]);
     this.extraFrames=extra.frames;this.extraAtlas=img2;
     this.atlas=img;this.frames=data.frames;
-    for(const [key,[x,y,w,h]] of Object.entries(this.frames)){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(img,x,y,w,h,0,0,w,h);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#fff1dc';ctx.fillRect(0,0,w,h);this.flashes[key]=cv;}
+    for(const [key,[x,y,w,h]] of Object.entries({...this.frames,...this.extraFrames})){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(this.extraFrames[key]?img2:img,x,y,w,h,0,0,w,h);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#fff1dc';ctx.fillRect(0,0,w,h);this.flashes[key]=cv;}
   }
   sprite(frame,width,hit=0){
     const extra=Boolean(this.extraFrames?.[frame]),frames=extra?this.extraFrames:this.frames,atlas=extra?this.extraAtlas:this.atlas;
     if(!atlas||!frames?.[frame])return;const c=this.c,[sx,sy,sw,sh]=frames[frame],h=width*sh/sw;
     c.drawImage(atlas,sx,sy,sw,sh,-width/2,-h/2,width,h);
-    if(hit>0&&this.flashes[frame]){c.save();c.globalAlpha=Math.min(.7,hit*6);c.drawImage(this.flashes[frame],-width/2,-h/2,width,h);c.restore();}
+    if(hit>0&&this.flashes[frame]){c.save();c.globalAlpha=Math.min(.32,hit*3.2);c.drawImage(this.flashes[frame],-width/2,-h/2,width,h);c.restore();}
   }
   ship(x,y,tilt,boost,t,size=1,hurt=0,frame='lancer',rig=null){
     if(!this.atlas)return this.legacyShip(x,y,tilt,boost,t,size,hurt);
@@ -54,7 +55,7 @@ export class Painter {
     if(!this.atlas)return this.legacyEnemy(e);
     const c=this.c,frame={wisp:'scout',ray:'interceptor',thorn:'turret',elite:'carrier',boss:e.bossVariant===1?'siege':'boss',guard:'guard',miner:'miner',mender:'mender',splitter:'splitter',sniper:'sniper'}[e.type];
     const angle=e.type==='ray'&&e.dash>0?e.aim-Math.PI:Math.sin(e.age*1.7+e.phase)*.04;
-    if(e.warn>0){c.save();c.globalAlpha=.45+.3*Math.sin(e.age*35);c.strokeStyle='#ff819d';c.lineWidth=1;c.setLineDash([7,7]);c.beginPath();c.moveTo(e.x,e.y);c.lineTo(e.x+Math.cos(e.aim)*700,e.y+Math.sin(e.aim)*700);c.stroke();c.setLineDash([]);c.strokeRect(e.x-8,e.y-8,16,16);c.restore();}
+    if(e.warn>0){c.save();c.globalAlpha=.45+.3*Math.sin(e.age*35);c.strokeStyle='#ff91b6';c.lineWidth=2;c.setLineDash([9,7]);c.beginPath();c.moveTo(e.x,e.y);c.lineTo(e.x+Math.cos(e.aim)*700,e.y+Math.sin(e.aim)*700);c.stroke();c.setLineDash([]);c.strokeRect(e.x-8,e.y-8,16,16);c.restore();}
     c.save();c.translate(e.x,e.y);c.rotate(angle);
     if(e.type==='boss'||e.type==='elite')glow(c,15,0,e.r*1.5,'#e5a68712');
     const width=e.r*(e.type==='boss'?3.05:e.type==='elite'?3.1:2.65);
@@ -127,7 +128,9 @@ export class Painter {
     for(const x of [r.x-half+10,r.x+half-10]){c.beginPath();c.moveTo(x-7,r.center-8);c.lineTo(x,r.center);c.lineTo(x-7,r.center+8);c.stroke();}
     c.restore();
   }
-  rock(r,t=0){
+  rock(r,t=0,camera=null){
+    if(camera&&(r.x+r.rx<camera.x||r.x-r.rx>camera.x+this.w))return;
+    if(r.wall){for(const tile of terrainTiles(r,camera.y,camera.y+this.h))this.rock(tile,t,camera);return;}
     const c=this.c,z=ZONES[r.theme??0];
     c.save();paintArcadeTerrain(c,r);
     const edge=r.y-r.side*r.ry*.7;c.fillStyle=z.hazard;
@@ -204,10 +207,10 @@ export class Painter {
   }
   draw(f, mode = 'playing', visualTime = 0) {
     const c = this.c; c.setTransform(this.canvas.width / this.w, 0, 0, this.canvas.height / this.h, 0, 0); const t = visualTime;
-    this.background(t, f.camera,mode==='title'||mode==='guide'?t:f.expedition?f.getBiome()*30+12:f.time); c.save(); c.translate(-f.camera.x, -f.camera.y);
+    this.background(t, f.camera,mode==='title'||mode==='guide'?t:f.expedition?f.getBiome()*30+12:f.time); if(!['title','guide','hangar'].includes(mode)){c.fillStyle='#030b1b33';c.fillRect(0,0,this.w,this.h);} c.save(); c.translate(-f.camera.x, -f.camera.y);
     if (mode !== 'title' && mode !== 'guide') {
       for(const r of f.rocks)if(r.side===-1)this.gateMarker(r,t);
-      for (const r of f.rocks) this.rock(r,t);
+      for (const r of f.rocks) this.rock(r,t,f.camera);
       for (const g of f.gems) { if(g.kind==='chest'){glow(c,g.x,g.y,32,'#ffd28736');c.save();c.translate(g.x,g.y);c.fillStyle='#786343';c.strokeStyle='#f5d498';c.lineWidth=1.5;c.fillRect(-9,-7,18,14);c.strokeRect(-9,-7,18,14);c.fillStyle='#ffefb3';c.fillRect(-2,-9,4,18);c.restore();continue;} if (g.kind === 'heal') { glow(c,g.x,g.y,27,'#b5ffd34c'); c.strokeStyle='#d6f6ca'; c.lineWidth=2; c.beginPath(); c.moveTo(g.x-6,g.y); c.lineTo(g.x+6,g.y); c.moveTo(g.x,g.y-6); c.lineTo(g.x,g.y+6); c.stroke(); continue; } glow(c, g.x, g.y, 20, '#78e8d328'); c.save(); c.translate(g.x, g.y); c.rotate(Math.PI / 4); c.fillStyle = g.value > 3 ? '#f0d99a' : '#8fe3cf'; c.fillRect(-3.5, -3.5, 7, 7); c.strokeStyle = '#d7fff3'; c.lineWidth = .6; c.strokeRect(-3.5, -3.5, 7, 7); c.restore(); }
       for(const mine of f.mines){c.save();c.translate(mine.x,mine.y);c.rotate(t*1.7);glow(c,0,0,23,mine.evo?'#b090ff45':'#c391ff25');c.fillStyle='#33284b';c.strokeStyle='#cdabff';c.lineWidth=1.5;plate(c,[[-9,0],[0,-9],[9,0],[0,9]]);c.fillStyle='#edd8ff';oval(c,0,0,2,2);c.restore();}
       for (const e of f.enemies) this.enemy(e);
@@ -216,7 +219,8 @@ export class Painter {
         const missile=b.kind==='missile',drone=b.kind==='drone';c.strokeStyle=missile?'#ffb77e77':drone?'#98f4bb66':'#f2d79b66';c.lineWidth=missile?2.6:1.6;c.beginPath();c.moveTo(b.x-b.vx*.043,b.y-b.vy*.043);c.lineTo(b.x,b.y);c.stroke();
         if(b.kind==='blade'){c.save();c.translate(b.x,b.y);c.rotate(t*18);c.strokeStyle='#b0ffe0';c.lineWidth=3;c.beginPath();c.arc(0,0,9,0,Math.PI*1.5);c.stroke();c.restore();}else if(b.kind==='scatter'){c.strokeStyle='#ffc37d';c.lineWidth=2.7;c.beginPath();c.moveTo(b.x-b.vx*.018,b.y-b.vy*.018);c.lineTo(b.x,b.y);c.stroke();}else if(missile){c.save();c.translate(b.x,b.y);c.rotate(Math.atan2(b.vy,b.vx));c.fillStyle='#d6d4b9';c.fillRect(-5,-2.4,10,4.8);c.fillStyle='#ffbf83';c.fillRect(-7,-1.5,3,3);c.restore();}else{c.fillStyle=drone?'#c8ffda':'#fff1c3';oval(c,b.x,b.y,f.evolutions.nova&&!drone?3.5:2.3,1.6);}
       }
-      for (const b of f.hostiles) { if(b.mine){c.save();c.translate(b.x,b.y);c.rotate(t*1.3);c.strokeStyle=b.arming?'#ffdf9690':'#ff899d';c.lineWidth=2;c.strokeRect(-6,-6,12,12);c.restore();} glow(c, b.x, b.y, 20, '#fb8e9f66'); c.strokeStyle = '#ffb3b1'; c.lineWidth = 1.5; c.beginPath(); c.arc(b.x, b.y, b.r, 0, TAU); c.stroke(); c.fillStyle = '#ffc3bb'; oval(c, b.x, b.y, 2, 2); }
+      c.globalCompositeOperation='source-over';
+      for (const b of f.hostiles) { if(b.mine){c.save();c.translate(b.x,b.y);c.rotate(t*1.3);c.strokeStyle=b.arming?'#ffdf9690':'#ff899d';c.lineWidth=2;c.strokeRect(-6,-6,12,12);c.restore();} glow(c,b.x,b.y,18,'#ff709a45');const radius=b.r+1.4;c.fillStyle='#130c20';oval(c,b.x,b.y,radius+1.7,radius+1.7);c.strokeStyle=b.arming?'#ffd78f':'#ff7198';c.lineWidth=2.3;c.beginPath();c.arc(b.x,b.y,radius,0,TAU);c.stroke();c.fillStyle='#fff4ee';oval(c,b.x,b.y,2.2,2.2); }
       c.restore();
       for (const e of f.effects) {
         const q = e.age / e.life; c.save(); c.globalAlpha = 1 - q;
@@ -224,6 +228,7 @@ export class Painter {
         else if(e.kind==='beam'){c.strokeStyle='#8bd4ff2d';c.lineWidth=e.width*3;c.beginPath();c.moveTo(e.ox,e.oy);c.lineTo(e.x,e.y);c.stroke();c.strokeStyle='#a6e4ffaa';c.lineWidth=e.width;c.stroke();c.strokeStyle='#f0fcff';c.lineWidth=Math.max(1,e.width*.2);c.stroke();}
         else if(e.kind==='burst'||e.kind==='explosion'){c.save();c.translate(e.x,e.y);this.sprite('explosion',(e.radius||65)*(.8+q*1.2),0);c.restore();glow(c,e.x,e.y,e.radius*(.3+q*.7),e.color+'35');c.strokeStyle=e.color;c.lineWidth=2*(1-q)+.5;c.beginPath();c.arc(e.x,e.y,8+e.radius*q,0,TAU);c.stroke();}
         else if(e.kind==='repairAura'){c.strokeStyle='#8fffc166';c.lineWidth=1.5;c.beginPath();c.arc(e.x,e.y,e.radius*q,0,TAU);c.stroke();}
+        else if(e.kind==='hurt'){const label=(e.source?.includes('接触')?'接触 ':'')+'−'+(e.amount||'');c.font='bold 16px sans-serif';c.lineWidth=3;c.strokeStyle='#160d22';c.fillStyle='#ffb6c8';c.strokeText(label,e.x+20,e.y-24-q*24);c.fillText(label,e.x+20,e.y-24-q*24);}
         else if(e.kind==='gateClear'){const radius=18+q*e.radius;glow(c,e.x,e.y,radius*.75,`${e.color}3a`);c.strokeStyle=e.color;c.lineWidth=2*(1-q)+.6;c.beginPath();c.arc(e.x,e.y,radius,0,TAU);c.stroke();for(let i=0;i<8;i++){const a=i/8*TAU,r=radius*.72;c.fillStyle=e.color;oval(c,e.x+Math.cos(a)*r,e.y+Math.sin(a)*r,2*(1-q)+.5,2*(1-q)+.5);}}
         else if (e.kind === 'lightning') { c.strokeStyle = '#d6c6ff'; c.lineWidth = 2; c.beginPath(); c.moveTo(e.ox, e.oy); for (let i = 1; i <= 8; i++) { const a = i / 8; c.lineTo(e.ox + (e.x - e.ox) * a + (i < 8 ? Math.sin(i * 32) * 13 : 0), e.oy + (e.y - e.oy) * a); } c.stroke(); }
         else { c.strokeStyle = e.kind === 'hurt' ? '#e79a9a' : e.color || '#e8d39b'; c.lineWidth = 1; c.beginPath(); c.arc(e.x, e.y, 12 + q * (e.radius || 60), 0, TAU); c.stroke(); for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; c.fillStyle = c.strokeStyle; oval(c, e.x + Math.cos(a) * q * 55, e.y + Math.sin(a) * q * 55, 2 * (1 - q) + .5, 1); } }
@@ -246,6 +251,15 @@ export class Painter {
       this.ship(x, y, -.04 + Math.sin(t) * .018, .15, t, this.w / this.h < .8 ? 2 : 3.4, 0, f.chassis);
     }
     c.restore();
+    if(mode==='playing'){
+      const gate=f.gates.filter(g=>!g.passed&&g.x>f.p.x-50&&g.x<f.camera.x+this.w*1.45).sort((a,b)=>a.x-b.x)[0];
+      if(gate){
+       const rawY=gate.center-f.camera.y,x=clamp(gate.x-f.camera.x-115,this.w*.48,this.w-36),y=clamp(rawY,95,this.h-115),outside=rawY!==y;
+       c.save();c.translate(x,y);c.fillStyle='#061626dc';c.strokeStyle='#a8f5e0';c.lineWidth=1.6;c.beginPath();c.arc(0,0,13,0,TAU);c.fill();c.stroke();
+       c.beginPath();if(outside){const side=rawY<y?-1:1;c.moveTo(-5,-side*3);c.lineTo(0,side*5);c.lineTo(5,-side*3);}else{c.moveTo(-5,-5);c.lineTo(3,0);c.lineTo(-5,5);}c.stroke();
+       c.fillStyle='#bdf8e8';c.font='11px sans-serif';c.textAlign='center';c.fillText(outside?(rawY<y?'通路 ↑':'通路 ↓'):'通路',0,29);c.restore();
+      }
+    }
     const vg = c.createRadialGradient(this.w * .5, this.h * .5, this.h * .2, this.w * .5, this.h * .5, Math.max(this.w, this.h) * .75); vg.addColorStop(0, 'transparent'); vg.addColorStop(1, '#03071199'); c.fillStyle = vg; c.fillRect(0, 0, this.w, this.h);
     // World altitude markings make vertical camera motion readable.
     if (mode === 'playing') {
