@@ -1,5 +1,5 @@
-import {arcadeArtStatus} from './arcade-art.mjs?v=lumen-3.0.0';
-import {paintRichScenery,materialStatus} from './stage-materials.mjs?v=lumen-3.0.0';
+import {arcadeArtStatus} from './arcade-art.mjs?v=lumen-4.0.0';
+import {paintRichScenery,materialStatus} from './stage-materials.mjs?v=lumen-4.0.0';
 // LUMEN WING v2.2 — deterministic, asset-free five-sector scenic renderer.
 // All visual geometry is screen-space and non-colliding; Flight remains authoritative.
 export const STAGES = Object.freeze([
@@ -22,7 +22,7 @@ export function preloadStageArt(){
     const img=new Image();img.decoding='async';
     img.onload=()=>{artImages[i]=img;artFailures.delete(stage.id);resolve(true);};
     img.onerror=()=>{artFailures.add(stage.id);resolve(false);}; // Canvas fallback.
-    img.src=new URL('./assets/scene-'+stage.id+'.svg?v=lumen-3.0.0',import.meta.url).href;
+    img.src=new URL('./assets/scene-'+stage.id+'.svg?v=lumen-4.0.0',import.meta.url).href;
   })));
   return artLoad;
 }

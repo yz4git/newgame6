@@ -3,7 +3,7 @@ const names=['helios','nacre','prism','forge','citadel'];
 const backdrops=[],terrain=[];let task;
 export function preloadArcade(){
  if(task)return task;if(typeof Image==='undefined')return Promise.resolve(false);
- const load=(file,assign)=>new Promise(resolve=>{const img=new Image();img.decoding='async';img.onload=()=>{assign(img);resolve(true);};img.onerror=()=>resolve(false);img.src=new URL('./assets/'+file+'?v=lumen-3.0.0',import.meta.url).href;});
+ const load=(file,assign)=>new Promise(resolve=>{const img=new Image();img.decoding='async';img.onload=()=>{assign(img);resolve(true);};img.onerror=()=>resolve(false);img.src=new URL('./assets/'+file+'?v=lumen-4.0.0',import.meta.url).href;});
  task=Promise.all(names.flatMap((id,i)=>[load('arcade-'+id+'-v3.webp',img=>backdrops[i]=img),...Array.from({length:2},(_,v)=>load('terrain-'+id+'-'+v+'-v3.webp',img=>terrain[i*2+v]=img))]));return task;
 }
 export function arcadeArtStatus(){return {loaded:backdrops.filter(Boolean).length+terrain.filter(Boolean).length,total:15};}

@@ -1,4 +1,4 @@
-import {SHAPES} from './terrain-shapes.mjs?v=lumen-3.0.0';
+import {SHAPES} from './terrain-shapes.mjs?v=lumen-4.0.0';
 // A common silhouette drives both painting and collision. Coordinates are normalized.
 export function terrainPoints(r){return SHAPES[(r.theme??0)*2+(r.variant??0)%2].map(([x,y])=>[r.x+x*r.rx,r.y+y*r.ry]);}
 export function circleHitsTerrain(p,r){

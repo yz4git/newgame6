@@ -13,3 +13,5 @@ for (const file of readdirSync('dist').filter(f => /\.(mjs|html)$/.test(f))) { c
 assert.ok(!html.includes('margin-tide')); assert.ok(html.includes('LUMEN')); assert.equal(JSON.parse(readFileSync('.openai/hosting.json')).static.directory, 'dist');
 const atlas=JSON.parse(readFileSync('dist/assets/arcade-atlas-v3.json','utf8'));assert.equal(Object.keys(atlas.frames).length,9);for(const [name,[x,y,w,h]]of Object.entries(atlas.frames)){assert.ok(w>0&&h>0&&x>=0&&y>=0&&x+w<=atlas.size[0]&&y+h<=atlas.size[1],`Invalid sprite: ${name}`);}assert.equal(readFileSync('dist/assets/arcade-atlas-v3.webp').toString('ascii',0,4),'RIFF');
 console.log('JavaScript, UI bindings, 9 arcade frames, manifest and complete offline asset graph verified.');
+
+const newEnemies=JSON.parse(readFileSync('dist/assets/enemies-v4.json','utf8'));assert.equal(Object.keys(newEnemies.frames).length,6);for(const frame of Object.values(newEnemies.frames)){const [x,y,w,h]=frame;assert.ok(x>=0&&y>=0&&w>0&&h>0&&x+w<=newEnemies.size[0]&&y+h<=newEnemies.size[1]);}
