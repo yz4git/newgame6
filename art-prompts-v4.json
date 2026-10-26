@@ -1,0 +1,13 @@
+{
+  "tool": "Built-in image_gen",
+  "asset": "dist/assets/enemies-v4.webp",
+  "prompt": "Production transparent 3-column 2-row sprite atlas for LUMENWING premium hand-painted arcade space shooter. All enemies point left, side view slightly top down. Cobalt shield frigate with bright cyan frontal armor; ochre black minelayer with four attached mine launchers; ivory green repair drone with connected articulated tools; purple fission gunship with connected wing pods; crimson gold long-cannon sniper; black orange siege battleship with six artillery pods and amber core. Isolated complete machines, transparent margins, intricate metallic shading, no text, background, labels, grid or insects.",
+  "frames": [
+    "guard",
+    "miner",
+    "mender",
+    "splitter",
+    "sniper",
+    "siege"
+  ]
+}

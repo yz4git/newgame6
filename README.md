@@ -1,3 +1,14 @@
+## v4.0.0 — Expedition / リプレイ拡張
+
+- 機体6種、出撃前の改造機構8種、契約6種、恒久強化8種。
+- 兵装10系統（主砲＋追加兵装9種から5枠を選択）、強化23種、進化10種。
+- 30秒ごとに分岐航路と遺物を選択。5つの宙域と8つの環境条件を組み合わせ、危険と報酬を選ぶ。遺物8種は今回の出撃に有効で、発見図鑑は帰還時に保存。
+- 散弾砲、設置機雷、往復ブレード、弾消しパルスを追加。貫通・減速・撃破修復・背水・資源回収を組み合わせた構成が可能。
+- 新型敵5種（盾装、機雷敷設、修復、分裂、狙撃）には専用アートと個別AIを追加。ボスは従来型、連装重砲、旋回弾幕の3パターン。
+- 既存セーブを維持。契約報酬は1出撃につき一度だけ精算。全滅後もパーツ・解放・発見した遺物の記録が残る。
+
+検証: 既存機能、追加兵装の実ダメージ、航路と遺物の停止・再開、シナジー、契約の重複精算防止、3ボス×横縦のキャンペーン通過を自動検証。ブラウザーで844×390・390×844の選択UI、新敵・兵装、ハンガーの改造・契約と保存を確認。実機iPhoneは未検証。
+
 ## v3.0.0 — Arcade art rebuild
 
 Original production artwork generated for LUMENWING: three player craft, five enemy classes, explosion sprite, five independent 1536×1024 background paintings, and ten transparent biome terrain sprites. Built-in image generation was used; all runtime files are bundled in `dist/assets/arcade-*-v3.webp` and `dist/assets/terrain-*-v3.webp`. The prompt set is in `art-prompts-v3.json`.
@@ -6,7 +17,7 @@ The scene now uses a distant painting, independently scrolling middle-distance t
 
 Validation: `npm test`, `npm run check`, plus browser inspection in 844×390 and 390×844 fixtures. QA fixtures are removed before publication.
 
-# LUMEN WING — 星を継ぐ翼 / v2.4.0
+# LUMEN WING — 星を継ぐ翼 / v4.0.0
 
 `yz4git/newgame6` の1ボタン飛行ローグライト。タップで上昇、離すと落下。自動攻撃で敵群を突破し、回収したパーツで次の出撃を強化します。上下どちらにも高度制限がなく、カメラも追従します。
 

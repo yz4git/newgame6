@@ -1,12 +1,23 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-3.0.0';
-import { Flight } from './model.mjs?v=lumen-3.0.0';
+import { start } from './app.mjs?v=lumen-4.0.0';
+import { Flight } from './model.mjs?v=lumen-4.0.0';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
   if (e.origin !== location.origin || !e.data.wingQA) return;
   if(e.data.wingQA==='reset'){try{localStorage.removeItem('lumen-wing-v1');}catch{}location.reload();return;}
   const f = new Flight(51); f.setView(innerWidth / innerHeight * (innerWidth < innerHeight ? 840 : 640), innerWidth < innerHeight ? 840 : 640, true);
+  if(['route','relic','arsenal','newboss'].includes(e.data.wingQA)){
+    f.expedition=true;f.p.hp=f.p.maxHP=200;f.enemies=[];
+    if(e.data.wingQA==='route'||e.data.wingQA==='relic'){f.time=30;f.currentPhase=1;f.beginRoute();if(e.data.wingQA==='relic')f.chooseRoute(0);}
+    else{
+      Object.assign(f.skills,{power:3,tempo:3,scatter:4,mine:4,blade:4,pulse:4,missile:3,beam:3,drone:3,shield:2,armor:2});
+      f.relics=['prism','ember','echo'];f.level=12;f.xpNeed=300;f.time=75;f.currentPhase=2;f.biomeIndex=2;
+      for(let i=0;i<9;i++)f.spawn(['guard','miner','mender','splitter','sniper'][i%5],180+i*45,(i%3-1)*100);
+      if(e.data.wingQA==='newboss'){f.time=150;f.currentPhase=4;f.bossVariant=1;f.tick();}
+    }
+    start(f);return;
+  }
   if(e.data.wingQA.startsWith('art-')){
     const stage=Number(e.data.wingQA.slice(4));f.time=stage*30+12;f.gateIndex=2;f.enemies=[];f.spawnGate();
     const base=f.gates[0];const shift=base.x-f.p.x-f.view.w*.43;
