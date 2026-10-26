@@ -35,3 +35,15 @@ test('all sectors draw in landscape and portrait, at different altitudes and dur
   assert.ok(log.bezierCurveTo>10,'painted nacre coral');
   assert.ok(log.ellipse>10,'painted orbital and stellar shapes');
 });
+
+import {existsSync,readFileSync} from 'node:fs';
+test('all five stages ship with original high-detail SVG background art',()=>{
+ for(const stage of STAGES){
+  const path=`dist/assets/scene-${stage.id}.svg`;
+  assert.ok(existsSync(path),`missing art: ${path}`);
+  const src=readFileSync(path,'utf8');
+  assert.ok(src.startsWith('<svg '));
+  assert.ok(src.includes('1800 1000'));
+  assert.ok(src.length>20000);
+ }
+});

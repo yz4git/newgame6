@@ -1,10 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.2.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.2.0';
-import {Painter} from './render.mjs?v=lumen-2.2.0';
-import {STAGES,stageIndex} from './stage-art.mjs?v=lumen-2.2.0';
-import {Sound} from './audio.mjs?v=lumen-2.2.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.2.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-2.2.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-2.3.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-2.3.0';
+import {Painter} from './render.mjs?v=lumen-2.3.0';
+import {STAGES,stageIndex} from './stage-art.mjs?v=lumen-2.3.0';
+import {Sound} from './audio.mjs?v=lumen-2.3.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-2.3.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-2.3.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);

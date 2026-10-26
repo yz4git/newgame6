@@ -8,6 +8,31 @@ export const STAGES = Object.freeze([
   {id:'citadel',name:'IRON CHOIR',ja:'機械聖堂',sky:['#050d1c','#16223a','#1d3444'],ink:'#0a1424',light:'#65cce4',accent:'#a8eaff'}
 ]);
 export const SECTOR_SECONDS=30;
+// Product-art backdrops: 1800x1000 self-contained scene paintings, no CDN or fonts.
+const artImages = Array(STAGES.length).fill(null);
+let artLoad = null;
+export function preloadStageArt(){
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  if(artLoad)return artLoad;
+  artLoad=Promise.all(STAGES.map((stage,i)=>new Promise(resolve=>{
+    const img=new Image();img.decoding='async';
+    img.onload=()=>{artImages[i]=img;resolve(true);};
+    img.onerror=()=>resolve(false); // Keep the deterministic Canvas backdrop as an offline fallback.
+    img.src='./assets/scene-'+stage.id+'.svg?v=lumen-2.3.0';
+  })));
+  return artLoad;
+}
+function paintArtPlate(c,w,h,cam,sector){
+  const img=artImages[sector];if(!img||!img.complete||!img.naturalWidth)return false;
+  const scale=Math.max(w/1800,h/1000)*1.07,dw=1800*scale,dh=1000*scale;
+  const dx=(w-dw)*.5+Math.sin(cam.x*.00036)*Math.min(22,w*.025);
+  const dy=(h-dh)*.5+Math.sin(cam.y*.00028)*Math.min(20,h*.027);
+  c.save();c.globalAlpha=.8;
+  c.drawImage(img,dx,dy,dw,dh);
+  c.restore();
+  return true;
+}
+
 export const stageIndex=t=>Math.max(0,Math.min(STAGES.length-1,Math.floor(Math.max(0,t)/SECTOR_SECONDS)));
 const TAU=Math.PI*2;
 const fract=x=>x-Math.floor(x);
@@ -247,7 +272,11 @@ function citadel(c,w,h,cam,t,reduce){
 const paintKinds=[solar,nacre,prism,forge,citadel];
 function paintSector(c,w,h,cam,t,sector,reduce){
   const theme=STAGES[sector];ambience(c,w,h,cam,t,theme);
+  const painted=paintArtPlate(c,w,h,cam,sector);
+  c.save();
+  if(painted)c.globalAlpha=.44; // Animated geometry stays in the foreground, artwork adds fine detail.
   paintKinds[sector](c,w,h,cam,t,reduce);
+  c.restore();
   // Near-camera motes are slow, sparse, and never masquerade as enemy bullets.
   c.save();c.globalAlpha=.2;c.fillStyle=theme.accent;
   for(let j=0;j<15;j++){
