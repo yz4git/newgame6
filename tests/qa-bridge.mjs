@@ -1,6 +1,6 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-4.2.0';
-import { Flight } from './model.mjs?v=lumen-4.2.0';
+import { start } from './app.mjs?v=lumen-4.3.0';
+import { Flight } from './model.mjs?v=lumen-4.3.0';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
@@ -28,10 +28,24 @@ addEventListener('message', e => {
   if(e.data.wingQA.startsWith('art-')){
     const stage=Number(e.data.wingQA.slice(4));f.time=stage*30+12;f.gateIndex=2;f.expedition=true;f.biomeIndex=stage;f.enemies=[];f.spawnGate();
     const base=f.gates[0];const shift=base.x-f.p.x-f.view.w*.43;
+    for(const g of f.gates)g.hazardPhase=1.7-(f.time%3.6);
     for(const g of f.gates)g.x-=shift;for(const r of f.rocks)r.x-=shift;
     f.p.y=base.center;f.setView(f.view.w,f.view.h,true);
     for(let i=0;i<5;i++)f.spawn(['wisp','ray','thorn','elite','wisp'][i],f.p.x+f.view.w*(.13+i*.095),f.p.y-45+(i%2)*95);
     start(f);f.status='qaStill';return;
+  }
+  if(e.data.wingQA.startsWith('impact-')){
+    f.expedition=true;f.time=17;f.gateIndex=2;f.biomeIndex=0;f.enemies=[];f.spawnGate();
+    const gate=f.gates[0],shift=gate.x-f.p.x-f.view.w*.48;
+    for(const g of f.gates){g.x-=shift;g.hazardPhase=1.7-(f.time%3.6);}
+    for(const r of f.rocks)r.x-=shift;
+    f.p.y=gate.center;f.setView(f.view.w,f.view.h,true);
+    start(f);
+    if(e.data.wingQA==='impact-shield'){f.p.shield=1;f.damage(23,'浮遊装甲への接触');}
+    else if(e.data.wingQA==='impact-hazard')f.damage(19,'恒星噴出口への接触');
+    else f.damage(23,'浮遊装甲への接触');
+    f.status='qaStill';
+    return;
   }
   if(['gate','gate2','gate3'].includes(e.data.wingQA)){f.time=e.data.wingQA==='gate'?74:e.data.wingQA==='gate2'?94:134;f.nextSwarm=200;f.nextElite=200;f.enemies=[];f.spawnGate();const gate=f.gates.at(-1);gate.x=f.p.x+f.view.w*.65;f.p.y=gate.center;for(const r of f.rocks.filter(r=>r.gateId===gate.id)){r.x=gate.x;r.y=gate.center+r.side*(gate.gap/2+r.ry+16);}f.setView(f.view.w,f.view.h,true);}
   else if(e.data.wingQA==='evolve'){f.skills.missile=4;f.skills.split=2;f.openChest();}

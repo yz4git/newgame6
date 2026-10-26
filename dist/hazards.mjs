@@ -10,11 +10,11 @@ export function gateHazard(g,time){
  const warning=theme===1||cycle<2.35;
  const top=g.center-g.gap/2,bottom=g.center+g.gap/2;
  const x=g.x+(theme===1?Math.sin(time*1.9+g.hazardPhase)*18:0);
- if(theme===0)return {theme,x,y:top+48,r:27,active,warning,shape:'orb'};
- if(theme===1)return {theme,x,y:g.center+Math.sin(time*1.55+g.hazardPhase)*43,r:23,active,warning,shape:'orb'};
- if(theme===2)return {theme,x,y:top+53,from:top+9,to:top+99,r:10,active,warning,shape:'beam'};
- if(theme===3)return {theme,x,y:bottom-51,from:bottom-98,to:bottom-9,r:16,active,warning,shape:'beam'};
- return {theme,x,y:top+60,from:top+8,to:top+111,r:18,active,warning,shape:'beam'};
+ if(theme===0)return {theme,x,y:top+48,r:38,active,warning,shape:'orb'};
+ if(theme===1)return {theme,x,y:g.center+Math.sin(time*1.55+g.hazardPhase)*43,r:34,active,warning,shape:'orb'};
+ if(theme===2)return {theme,x,y:top+53,from:top+9,to:top+99,r:22,active,warning,shape:'beam'};
+ if(theme===3)return {theme,x,y:bottom-51,from:bottom-98,to:bottom-9,r:30,active,warning,shape:'beam'};
+ return {theme,x,y:top+60,from:top+8,to:top+111,r:29,active,warning,shape:'beam'};
 }
 export function hitsGateHazard(p,h){
  if(!h?.active||Math.abs(p.x-h.x)>p.r+h.r)return false;

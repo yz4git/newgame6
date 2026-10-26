@@ -30,3 +30,13 @@ test('active stage hazard damages the ship and invalidates its gate; warning nev
  const other=new Flight(33,{routes:true});other.enemies=[];other.spawnTimer=other.gateTimer=other.nextSwarm=other.nextElite=1e6;
  const w=gate(3);w.x=other.p.x;w.exit=other.p.x+100;w.hazardPhase=.2;other.gates=[w];other.p.y=gateHazard(w,other.time).y;other.tick();assert.equal(w.failed,false);assert.equal(other.p.hp,other.p.maxHP);
 });
+test('terrain and hazard hits report real HP loss, while shield defense reports no damage',()=>{
+ const f=new Flight(84,{routes:true});f.enemies=[];f.p.hurt=0;
+ f.damage(23,'浮遊装甲への接触');
+ assert.equal(f.p.hp,f.p.maxHP-23);assert.deepEqual(f.events.find(e=>e.type==='hurt'),{type:'hurt',amount:23,source:'浮遊装甲への接触',hp:f.p.hp,maxHP:f.p.maxHP});
+ assert.equal(f.effects.at(-1).kind,'hurt');
+ f.p.hurt=0;f.p.shield=1;const hp=f.p.hp;
+ f.damage(19,'溶岩噴出への接触');
+ assert.equal(f.p.hp,hp);assert.ok(f.events.some(e=>e.type==='guard'&&e.source==='溶岩噴出への接触'));
+ assert.equal(f.effects.at(-1).kind,'guard');
+});
