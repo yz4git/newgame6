@@ -1,4 +1,5 @@
-import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-2.4.0';
+import {circleHitsTerrain} from './terrain.mjs?v=lumen-3.0.0';
+import {VERSION,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-3.0.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -56,15 +57,26 @@ export class Flight{
   this.spawnTimer+=Math.max(.34,.82-this.time/330)/(this.heat===2?1.12:1);
  }
  spawnGate(){
-  const index=this.gateIndex++,x=this.p.x+this.view.w*.8+180;
+  const index=this.gateIndex++,theme=Math.min(4,Math.floor(this.time/30));
   const gap=clamp(this.view.h*.35-this.time*.12,238,300);
   const direction=index%2===0?-1:1;
-  const center=this.p.y+direction*this.view.h*.17+(this.rand()-.5)*this.view.h*.08;
-  const gateId=++this.id,theme=Math.min(4,Math.floor(this.time/30)),variant=Math.floor(this.rand()*3);
-  this.gates.push({id:gateId,x,center,gap,theme,variant,failed:false,passed:false});
-  for(const side of [-1,1]){const ry=205+this.rand()*24;this.rocks.push({id:++this.id,gateId,x,y:center+side*(gap/2+ry+16),rx:58+this.rand()*15,ry,phase:this.rand()*10,side,center,gap,theme,variant});}
-  this.gateTimer+=8.8;
+  const base=this.p.y+direction*this.view.h*.17+(this.rand()-.5)*this.view.h*.08;
+  const x=this.p.x+this.view.w*.8+180;
+  // A readable entry, a committed climb/dive, then an open recovery section.
+  const patterns=[[0,-60,30],[0,75,-25],[0,-85,0],[0,60,100],[0,-65,45]];
+  const count=index===0?1:3,spacing=210;
+  for(let j=0;j<count;j++){
+   const center=base+patterns[theme][j]*direction,gateId=++this.id,gx=x+j*spacing;
+   const variant=(index+j)%2;
+   this.gates.push({id:gateId,x:gx,center,gap,theme,variant,failed:false,passed:false,exit:gx+95});
+   for(const side of [-1,1]){
+    const rx=86+(theme===4?20:0)+this.rand()*14,ry=220+this.rand()*24;
+    this.rocks.push({id:++this.id,gateId,x:gx,y:center+side*(gap/2+ry),rx,ry,phase:this.rand()*10,side,center,gap,theme,variant});
+   }
+  }
+  this.gateTimer+=count===1?7:10.8;
  }
+
  damage(amount,source='敵の攻撃'){
   const p=this.p;if(p.hurt>0||this.status!=='playing')return;
   if(p.shield){p.shield=0;this.timers.shield=Math.max(3.8,9-this.skills.shield*.9);p.hurt=.32;this.addEffect('guard',p.x,p.y,{life:.5,radius:100});this.emit('guard');return;}
@@ -203,7 +215,7 @@ export class Flight{
    }
   }
   for(const b of this.hostiles){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(this.evolutions.aegis&&Math.hypot(b.x-p.x,b.y-p.y)<95){b.life=0;continue;}if(Math.hypot(b.x-p.x,b.y-p.y)<p.r+b.r){this.damage(b.damage,b.source);b.life=0;}}
-  for(const r of this.rocks){const qx=(p.x-r.x)/(r.rx+p.r),qy=(p.y-r.y)/(r.ry+p.r);if(qx*qx+qy*qy<1){const gate=this.gates.find(g=>g.id===r.gateId);if(gate)gate.failed=true;this.damage(23,'浮遊装甲への接触');p.vy+=(p.y<r.y?-1:1)*dt*350;}}
+  for(const r of this.rocks){if(circleHitsTerrain(p,r)){const gate=this.gates.find(g=>g.id===r.gateId);if(gate)gate.failed=true;this.damage(23,'浮遊装甲への接触');p.vy+=(p.y<r.y?-1:1)*dt*350;}}
   for(const gate of this.gates)if(!gate.passed&&p.x>gate.x+95){gate.passed=true;if(!gate.failed&&Math.abs(p.y-gate.center)<gate.gap/2){this.gateDodges++;this.collect(2);this.addEffect('gateClear',p.x,p.y,{life:.8,radius:118,color:'#8be8d4'});this.emit('gatePass',{count:this.gateDodges});}}
   this.gates=this.gates.filter(g=>p.x<g.x+this.view.w*.75);
   for(const g of this.gems){

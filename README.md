@@ -1,3 +1,11 @@
+## v3.0.0 — Arcade art rebuild
+
+Original production artwork generated for LUMENWING: three player craft, five enemy classes, explosion sprite, five independent 1536×1024 background paintings, and ten transparent biome terrain sprites. Built-in image generation was used; all runtime files are bundled in `dist/assets/arcade-*-v3.webp` and `dist/assets/terrain-*-v3.webp`. The prompt set is in `art-prompts-v3.json`.
+
+The scene now uses a distant painting, independently scrolling middle-distance terrain and particles, and opaque foreground hazards. Terrain silhouettes are measured from the artwork into `terrain-shapes.mjs` and shared with circle-versus-polygon collision. After a single introductory gate, three-part climb/dive routes alternate with recovery space. One-button flight and automatic combat remain intact. Versioned imports and the v3 offline cache prevent mixing old and new source.
+
+Validation: `npm test`, `npm run check`, plus browser inspection in 844×390 and 390×844 fixtures. QA fixtures are removed before publication.
+
 # LUMEN WING — 星を継ぐ翼 / v2.4.0
 
 `yz4git/newgame6` の1ボタン飛行ローグライト。タップで上昇、離すと落下。自動攻撃で敵群を突破し、回収したパーツで次の出撃を強化します。上下どちらにも高度制限がなく、カメラも追従します。
