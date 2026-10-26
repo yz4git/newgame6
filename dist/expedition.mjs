@@ -1,4 +1,4 @@
-import {CHASSIS,MODS,RELICS,SECTOR_MODS,CONTRACTS} from './catalog.mjs?v=lumen-4.0.0';
+import {CHASSIS,MODS,RELICS,SECTOR_MODS,CONTRACTS} from './catalog.mjs?v=lumen-4.1.0';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const expeditionMethods={
  initExpedition(options){
@@ -100,9 +100,9 @@ export const expeditionMethods={
    for(const ally of this.enemies)if(ally!==e&&ally.hp>0&&ally.type!=='boss'&&Math.hypot(ally.x-e.x,ally.y-e.y)<200)ally.hp=Math.min(ally.maxHP,ally.hp+ally.maxHP*.08);
    e.timer=2;this.addEffect('repairAura',e.x,e.y,{life:.5,radius:200,color:'#7fffc1'});
   }
-  if(e.type==='miner'&&e.timer<=0){this.hostiles.push({x:e.x-15,y:e.y,vx:35,vy:0,life:5,r:9,damage:18,source:'機雷敷設艇の砲撃',arming:.8,mine:true});e.timer=2.6;}
+  if(e.type==='miner'&&e.timer<=0&&this.canThreaten(e)){this.hostiles.push({x:e.x-15,y:e.y,vx:35,vy:0,life:5,r:9,damage:18,source:'機雷敷設艇の砲撃',arming:.8,mine:true});e.timer=2.6;}
   if(['sniper','guard'].includes(e.type)){
-   if(e.timer<=0&&!e.warn){e.warn=e.type==='sniper'?.95:.65;e.aim=Math.atan2(p.y+p.vy*.15-e.y,p.x-e.x);}
+   if(e.timer<=0&&!e.warn&&this.canThreaten(e)){e.warn=e.type==='sniper'?.95:.65;e.aim=Math.atan2(p.y+p.vy*.15-e.y,p.x-e.x);}
    if(e.warn>0){e.warn-=dt;if(e.warn<=0){e.warn=0;this.enemyShot(e,e.aim,e.type==='sniper'?340:155,e.type==='sniper'?1:3,.24);e.timer=e.type==='sniper'?3.6:3.2;}}
   }
   if(d<p.r+e.r*.76)this.damage(e.damage,'新型機との接触');return true;

@@ -1,10 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.0.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.0.0';
-import {Painter} from './render.mjs?v=lumen-4.0.0';
-import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.0.0';
-import {Sound} from './audio.mjs?v=lumen-4.0.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.0.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-4.0.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.1.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.1.0';
+import {Painter} from './render.mjs?v=lumen-4.1.0';
+import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.1.0';
+import {Sound} from './audio.mjs?v=lumen-4.1.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.1.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-4.1.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
@@ -95,8 +95,8 @@ function renderHangar(notice=''){
 function handleEvents(){
  for(const e of f.events.splice(0)){
   if(e.type==='end'){finish();return;}sound.play(e.type);
-  if(e.type==='boss')toast(['THE ECLIPSE / 星喰い','SIEGE REGENT / 重砲王','SPIRAL CROWN / 螺旋冠'][f.bossVariant]+'、来襲',3.6);
-  else if(e.type==='bossphase')toast(e.phase===2?'星喰い / 全砲門解放':'星喰い / 反撃フェーズ',2.3);
+  if(e.type==='boss')toast(BOSSES[f.bossVariant].en+' / '+BOSSES[f.bossVariant].ja+'、来襲',3.6);
+  else if(e.type==='bossphase')toast(BOSSES[f.bossVariant].ja+(e.phase===2?' / 全砲門解放':' / 反撃フェーズ'),2.3);
   else if(e.type==='eliteIncoming')toast('敵重装母艦 / 補給箱を狙え',2.7);
   else if(e.type==='phase')toast('SECTOR 0'+(e.phase+1)+' / '+STAGES[e.phase].name+' / '+STAGES[e.phase].ja,3.5);
   else if(e.type==='sectorChosen')toast(STAGES[e.biome].ja+' / '+SECTOR_MODS[e.mod].name,3);
@@ -111,10 +111,10 @@ function handleEvents(){
 function updateHUD(){
  $('sky').dataset.worldY=f.p.y.toFixed(1);$('sky').dataset.velocity=f.p.vy.toFixed(1);$('sky').dataset.cameraY=f.camera.y.toFixed(1);$('sky').dataset.frameMs=rawFrame.toFixed(1);$('sky').dataset.renderMs=renderCost.toFixed(1);
  $('hpText').textContent=`${Math.ceil(f.p.hp)} / ${f.p.maxHP}`;$('hpFill').style.width=`${f.p.hp/f.p.maxHP*100}%`;$('level').textContent=`LV. ${f.level}`;$('kills').textContent=f.kills;$('xpFill').style.width=`${clamp(f.xp/f.xpNeed*100,0,100)}%`;
- const art=stageArtStatus();$('sector').textContent=String(stageIndex(f.time)+1).padStart(2,'0')+' / '+STAGES[f.getBiome()].name+' · ART '+art.loaded+'/'+art.total;
+ const art=stageArtStatus();$('sector').textContent=String(stageIndex(f.time)+1).padStart(2,'0')+' / '+STAGES[f.getBiome()].name;
   $('sky').dataset.artLoaded=String(art.loaded);$('sky').dataset.artFailed=String(art.failed);
-  $('timer').textContent=f.bossSpawned?clock(f.time):clock(Math.max(0,150-f.time));$('phase').textContent=f.bossSpawned?'星喰いを倒せ':`侵攻${f.heat===2?'Ⅱ':'Ⅰ'} / ${SECTOR_MODS[f.sectorMod].name}`;
- $('altitude').textContent=`${f.p.y<=0?'+':'−'}${Math.abs(Math.round(f.p.y))} m`;$('bossHUD').hidden=!f.bossSpawned||!f.boss||f.boss.hp<=0;if(f.boss)$('bossFill').style.width=`${Math.max(0,f.boss.hp/f.boss.maxHP*100)}%`;
+  $('timer').textContent=f.bossSpawned?clock(Math.max(0,f.time-150)):clock(Math.max(0,150-f.time));$('phase').textContent=f.bossSpawned?BOSSES[f.bossVariant].ja+'を倒せ':`侵攻${f.heat===2?'Ⅱ':'Ⅰ'} / ${SECTOR_MODS[f.sectorMod].name}`;
+ $('altitude').textContent=`${f.p.y<=0?'+':'−'}${Math.abs(Math.round(f.p.y))} m`;$('bossHUD').hidden=!f.bossSpawned||!f.boss||f.boss.hp<=0;if(f.boss){$('bossNameEn').textContent=BOSSES[f.bossVariant].en;$('bossNameJa').textContent=BOSSES[f.bossVariant].ja;}if(f.boss)$('bossFill').style.width=`${Math.max(0,f.boss.hp/f.boss.maxHP*100)}%`;
  if(f.time>10)$('flightTip').style.opacity='0';if(f.time>toastUntil)$('toast').hidden=true;
  const key=JSON.stringify([f.skills,f.evolutions,f.rerolls,f.relics,f.sectorMod,Math.floor(contractProgress(f))]);if(key!==armoryKey){armoryKey=key;$('armory').innerHTML=weaponKeys.filter(k=>k==='star'||f.skills[k]).map(k=>{const rank=k==='star'?1+f.skills.power:f.skills[k],id=evolutionFor(k),evolved=f.evolutions[id];return `<span class="weapon-slot${!rank?' empty':''}${evolved?' evolved':''}" title="${evolved?EVOLUTIONS[id].name:weaponName(k)}">${evolved?EVOLUTIONS[id].icon:weaponIcons[k]}<b>${evolved?'EX':rank||'−'}</b></span>`;}).join('');$('buildInfo').textContent=`${MODS[f.mod].name} / 遺物 ${f.relics.length} / ${CONTRACTS[f.contract].name} ${Math.floor(contractProgress(f))}/${CONTRACTS[f.contract].goal}`;}
 }
@@ -130,6 +130,7 @@ window.addEventListener('keydown',e=>{
  else if(mode==='upgrade'&&e.code==='KeyR'){e.preventDefault();reroll();}
 });
 window.addEventListener('keyup',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code)){e.preventDefault();endInput(e.code);}});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();pause();}});
+$('rise').addEventListener('click',e=>{if(e.detail===0&&mode==='playing'){sound.unlock();f.flap();}});
 $('start').onclick=()=>start();$('retry').onclick=()=>start();$('deploy').onclick=()=>start();$('resultHome').onclick=home;$('pause').onclick=pause;$('resume').onclick=resume;
 $('quit').onclick=()=>{if(mode!=='paused')return;f.lastDamage='自主撤退';f.status='dead';finish();};$('howto').onclick=()=>{setMode('guide');$('guideClose').focus({preventScroll:true});};$('guideClose').onclick=home;
 $('hangar').onclick=openHangar;$('resultHangar').onclick=openHangar;$('hangarClose').onclick=closeHangar;$('reroll').onclick=reroll;

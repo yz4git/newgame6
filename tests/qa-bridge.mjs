@@ -1,12 +1,19 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-4.0.0';
-import { Flight } from './model.mjs?v=lumen-4.0.0';
+import { start } from './app.mjs?v=lumen-4.1.0';
+import { Flight } from './model.mjs?v=lumen-4.1.0';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
   if (e.origin !== location.origin || !e.data.wingQA) return;
   if(e.data.wingQA==='reset'){try{localStorage.removeItem('lumen-wing-v1');}catch{}location.reload();return;}
   const f = new Flight(51); f.setView(innerWidth / innerHeight * (innerWidth < innerHeight ? 840 : 640), innerWidth < innerHeight ? 840 : 640, true);
+  if(e.data.wingQA==='corridor'){
+    f.expedition=true;f.enemies=[];f.time=20;f.gateIndex=2;f.spawnGate();
+    const first=f.gates[0],shift=first.x-f.p.x-f.view.w*.38;
+    for(const g of f.gates){g.x-=shift;g.exit-=shift;}
+    for(const r of f.rocks)r.x-=shift;
+    f.p.y=first.center;f.skills.shield=1;f.p.shield=1;f.spawnTimer=f.gateTimer=f.nextElite=f.nextSwarm=1000;f.setView(f.view.w,f.view.h,true);start(f);return;
+  }
   if(['route','relic','arsenal','newboss'].includes(e.data.wingQA)){
     f.expedition=true;f.p.hp=f.p.maxHP=200;f.enemies=[];
     if(e.data.wingQA==='route'||e.data.wingQA==='relic'){f.time=30;f.currentPhase=1;f.beginRoute();if(e.data.wingQA==='relic')f.chooseRoute(0);}

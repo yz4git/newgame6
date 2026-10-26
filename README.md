@@ -1,3 +1,9 @@
+## v4.1.0 — 実画面レビューの改善
+
+経験値の追従、上下につながる地形と通路案内、画面外からの射撃防止、敵弾の輪郭、通知位置、接触ダメージ表示、新型敵の被弾表示、縦画面のボスの大きさ・間合い・名称と時計を修正しました。
+
+通常出撃と検証用シナリオを実画面で操作し、46件の自動テストを通過。範囲と発見事項は [プレイチェック記録](docs/qa-v4.1.md) を参照してください。
+
 ## v4.0.0 — Expedition / リプレイ拡張
 
 - 機体6種、出撃前の改造機構8種、契約6種、恒久強化8種。
@@ -17,7 +23,7 @@ The scene now uses a distant painting, independently scrolling middle-distance t
 
 Validation: `npm test`, `npm run check`, plus browser inspection in 844×390 and 390×844 fixtures. QA fixtures are removed before publication.
 
-# LUMEN WING — 星を継ぐ翼 / v4.0.0
+# LUMEN WING — 星を継ぐ翼 / v4.1.0
 
 `yz4git/newgame6` の1ボタン飛行ローグライト。タップで上昇、離すと落下。自動攻撃で敵群を突破し、回収したパーツで次の出撃を強化します。上下どちらにも高度制限がなく、カメラも追従します。
 
