@@ -1,0 +1,14 @@
+{
+  "tool": "Built-in image_gen",
+  "style": "Original premium HD painted arcade space shooter inspired by Gradius II environmental variety; no copied sprites, logos, insects or UI.",
+  "assets": {
+    "arcade-atlas-v3.webp": "Transparent three by three atlas: right facing ivory crimson player fighter, ivory blue heavy fighter, jade interceptor; left facing purple scout, crimson interceptor, bronze teal turret; dark crimson carrier, violet gold reactor boss, fiery explosion. Crisp metallic materials and connected machinery.",
+    "terrain-*-v3.webp": "Transparent five by two terrain atlas: scorched solar rock, ivory turquoise coral limestone, blue violet quartz, lava basalt, blue steel fortress; second row ruined solar machinery, pearl shell rock, diagonal quartz blades, foundry slab, armored buttress. Solid connected masses, directional light, crisp material shading.",
+    "arcade-helios-v3.webp": "Immense orange sun upper right, solar prominences, ruined orbital shipyards, black starfield.",
+    "arcade-nacre-v3.webp": "Teal alien coral cavern, luminous ivory limestone arches, pearl flora, turquoise atmospheric depth.",
+    "arcade-prism-v3.webp": "Frozen violet blue quartz cavern, translucent cliffs, broken ice moon, dark starry central passage.",
+    "arcade-forge-v3.webp": "Volcanic industrial world, basalt mountains, foundry towers, lava falls and smoke, charcoal sky.",
+    "arcade-citadel-v3.webp": "Blue steel mechanical fortress cathedral, intricate ribbed armor and pipes, distant cyan spherical reactor, dark central passage."
+  },
+  "background_common_prompt": "Single production game background for LUMENWING horizontal arcade space shooter. Wide landscape 1536x1024. Beautiful premium detailed hand painted 2D arcade art inspired by the environmental drama of Gradius II but original. Side scrolling perpendicular view, layered atmospheric distance, exquisite texture. Center and left middle dark relatively empty for readable gameplay. All objects distant. No foreground collision objects, ships, enemies, UI, text, collage or panels."
+}
