@@ -1,5 +1,6 @@
-import { clamp } from './model.mjs?v=lumen-2.3.1';
-import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-2.3.1';
+import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-2.4.0';
+import { clamp } from './model.mjs?v=lumen-2.4.0';
+import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-2.4.0';
 const TAU = Math.PI * 2;
 const hash = (a, b = 0) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 const oval = (c, x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); };
@@ -16,9 +17,9 @@ const ZONES=[
 {hazard:'#9becf5',accent:'#77c6e3',rock:['#0a1b2c','#35577a','#8dcbd7']}
 ];
 export class Painter {
-  constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.atlas=null; this.frames=null; this.flashes={}; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; preloadStageArt().catch(()=>{}); }
+  constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.atlas=null; this.frames=null; this.flashes={}; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; preloadStageArt().catch(()=>{}); preloadMaterials().catch(()=>{}); }
   async loadAssets() {
-    const [data,img]=await Promise.all([fetch(new URL('./assets/mech-atlas-v2.json?v=lumen-2.3.1',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/mech-atlas-v2.webp?v=lumen-2.3.1',import.meta.url).href;})]);
+    const [data,img]=await Promise.all([fetch(new URL('./assets/mech-atlas-v2.json?v=lumen-2.4.0',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/mech-atlas-v2.webp?v=lumen-2.4.0',import.meta.url).href;})]);
     this.atlas=img;this.frames=data.frames;
     for(const [key,[x,y,w,h]] of Object.entries(this.frames)){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(img,x,y,w,h,0,0,w,h);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#fff1dc';ctx.fillRect(0,0,w,h);this.flashes[key]=cv;}
   }
@@ -127,6 +128,12 @@ export class Painter {
       i?c.lineTo(Math.cos(a)*r.rx*v,Math.sin(a)*r.ry*v):c.moveTo(Math.cos(a)*r.rx*v,Math.sin(a)*r.ry*v);
     }c.closePath();};
     body();c.fill();c.save();body();c.clip();
+    const material=materialImage(theme===0?5:theme);
+    if(material&&material.complete&&material.naturalWidth){
+      c.save();c.globalAlpha=.64;
+      c.drawImage(material,-r.rx,-r.ry,r.rx*2,r.ry*2);
+      c.restore();
+    }
     c.fillStyle=rgba('#030a16',.29);plate(c,[[r.rx*.08,-r.ry*.82],[r.rx,-r.ry*.68],[r.rx*.69,r.ry*.94],[r.rx*.08,r.ry*.67]]);
     if(theme===0){ // Heat-glazed orbital wreck.
       for(let i=0;i<7;i++){const y=-r.ry*.76+i*r.ry*.26;

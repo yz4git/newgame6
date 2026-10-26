@@ -1,3 +1,4 @@
+import {paintRichScenery,materialStatus} from './stage-materials.mjs?v=lumen-2.4.0';
 // LUMEN WING v2.2 — deterministic, asset-free five-sector scenic renderer.
 // All visual geometry is screen-space and non-colliding; Flight remains authoritative.
 export const STAGES = Object.freeze([
@@ -11,7 +12,7 @@ export const SECTOR_SECONDS=30;
 // Product-art backdrops: 1800x1000 self-contained scene paintings, no CDN or fonts.
 const artImages = Array(STAGES.length).fill(null);
 const artFailures = new Set();
-export const stageArtStatus=()=>({loaded:artImages.filter(img=>img?.complete&&img?.naturalWidth>0).length,total:STAGES.length,failed:artFailures.size});
+export const stageArtStatus=()=>{const mats=materialStatus();return {loaded:mats.loaded,total:mats.total,failed:artFailures.size,legacy:artImages.filter(img=>img?.complete&&img?.naturalWidth>0).length};};
 let artLoad = null;
 export function preloadStageArt(){
   if(typeof Image==='undefined')return Promise.resolve(false);
@@ -20,7 +21,7 @@ export function preloadStageArt(){
     const img=new Image();img.decoding='async';
     img.onload=()=>{artImages[i]=img;artFailures.delete(stage.id);resolve(true);};
     img.onerror=()=>{artFailures.add(stage.id);resolve(false);}; // Canvas fallback.
-    img.src=new URL('./assets/scene-'+stage.id+'.svg?v=lumen-2.3.1',import.meta.url).href;
+    img.src=new URL('./assets/scene-'+stage.id+'.svg?v=lumen-2.4.0',import.meta.url).href;
   })));
   return artLoad;
 }
@@ -29,7 +30,7 @@ function paintArtPlate(c,w,h,cam,sector){
   const scale=Math.max(w/1800,h/1000)*1.07,dw=1800*scale,dh=1000*scale;
   const dx=(w-dw)*.5+Math.sin(cam.x*.00036)*Math.min(22,w*.025);
   const dy=(h-dh)*.5+Math.sin(cam.y*.00028)*Math.min(20,h*.027);
-  c.save();c.globalAlpha=.8;
+  c.save();c.globalAlpha=.32;
   let rendered=true;
   try{c.drawImage(img,dx,dy,dw,dh);}
   catch(error){artFailures.add(STAGES[sector].id);artImages[sector]=null;rendered=false;}
@@ -278,9 +279,10 @@ function paintSector(c,w,h,cam,t,sector,reduce){
   const theme=STAGES[sector];ambience(c,w,h,cam,t,theme);
   const painted=paintArtPlate(c,w,h,cam,sector);
   c.save();
-  if(painted)c.globalAlpha=.44; // Animated geometry stays in the foreground, artwork adds fine detail.
+  if(painted)c.globalAlpha=.24;
   paintKinds[sector](c,w,h,cam,t,reduce);
   c.restore();
+  paintRichScenery(c,w,h,cam,t,sector);
   // Near-camera motes are slow, sparse, and never masquerade as enemy bullets.
   c.save();c.globalAlpha=.2;c.fillStyle=theme.accent;
   for(let j=0;j<15;j++){
