@@ -1,0 +1,57 @@
+name: Publish LUMEN WING to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dist/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'package.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Check game and static assets
+        run: |
+          node --version
+          npm test
+          npm run check
+          test -f dist/index.html
+          test -f dist/stage-art.mjs
+          for stage in helios nacre prism forge citadel; do
+            test -s "dist/assets/scene-${stage}.svg"
+          done
+
+      - name: Enable GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload game at website root
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy LUMEN WING
+        id: deployment
+        uses: actions/deploy-pages@v4
