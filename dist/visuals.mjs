@@ -27,7 +27,7 @@ export function preloadVisuals(theme=0){
    }catch{} // Art still renders if an outline canvas cannot be allocated.
    resolve(true);
   };im.onerror=()=>resolve(false);
-  im.src=new URL(`./assets/${kind}-${VISUAL_THEMES[theme]}${pack}-v6.webp?v=lumen-4.4.0`,import.meta.url).href;
+  im.src=new URL(`./assets/${kind}-${VISUAL_THEMES[theme]}${pack}-v6.webp?v=lumen-4.4.1`,import.meta.url).href;
  }))));
  return record.loading;
 }
