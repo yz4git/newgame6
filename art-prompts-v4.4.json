@@ -1,0 +1,43 @@
+{
+  "method": "OpenAI built-in image generation; transparent background",
+  "first_sets": {
+    "fleet": "Nine distinct biome-specific spacecraft and defenses in a 3 by 3 transparent atlas, highly detailed painted side-view sci-fi game art.",
+    "scenery": "Nine distinct environmental objects in a 3 by 3 transparent atlas, highly detailed painted side-view sci-fi game art."
+  },
+  "extra_template": "Use case: stylized-concept. Asset type: sprite atlas for a high-quality horizontal arcade shooting game. Setting and materials: {theme}. Draw SIXTEEN visually distinct {subject}. Exactly 4 columns and 4 rows in a precise uniform grid, one complete detached object centered in each cell, with generous transparent padding. Intricate hand-painted sci-fi game art with sharp distinctive silhouettes and tactile material detail, viewed from the side or three-quarter side. Objects must not cross cell boundaries. No border, no grid lines, no writing, no symbols, no watermark, no scene or ground. Fully transparent background.",
+  "themes": {
+    "helios": "stellar scrapyard: charred bronze, radiant amber, solar plasma",
+    "nacre": "alien coral abyss: pearl white, crimson coral, turquoise bioluminescence",
+    "prism": "crystalline ice field: sapphire crystal, violet glass, cold metal",
+    "forge": "industrial lava foundry: red-black iron, hot orange furnaces, molten rock",
+    "citadel": "ancient mechanical fortress: gunmetal, brass, purple energy"
+  },
+  "packs": {
+    "fleet-a": "small fast recon drones, fighters and interceptors; every design has a different overall silhouette",
+    "fleet-b": "heavy armored gunships, mines, repair drones and defensive sentries; every design has a different silhouette",
+    "fleet-c": "unusual elite machines, flying turrets, support craft, satellites and alien interceptors; every design has a different silhouette",
+    "scenery-a": "floating environmental rocks, reefs, ice shards, or debris fitting the setting; every silhouette distinct",
+    "scenery-b": "ruined structures, generators, towers, and derelict constructions fitting the setting; every silhouette distinct",
+    "scenery-c": "mechanical fragments, spires, vents, energy cores and machinery fitting the setting; every silhouette distinct"
+  },
+  "initial_templates": {
+    "fleet": "Use case: stylized-concept. Asset type: transparent sprite atlas for a high-quality 2D side-scrolling arcade shooter. Create a clean sprite sheet of NINE genuinely distinct {theme}. 3 columns by 3 rows in an exact uniform grid, each object fully contained and centered in its cell with generous transparent padding. Individual detached mechanical subjects only, each silhouette unique and clearly different; avoid duplicates and recolors. Consistent three-quarter side view and cohesive exquisitely detailed hand-painted sci-fi arcade artwork, rich material detail and crisp readable silhouettes, no cast ground shadows, no perspective environment. Exactly one object per cell, no objects crossing cells, no border, no typography, no labels, no watermark. Background must be fully transparent.",
+    "scenery": "Use case: stylized-concept. Asset type: sprite atlas for a high-detail horizontal arcade shooting game. Create a sheet of nine distinct, isolated, non-character game objects inspired by {theme}. Arrange exactly 3 columns by 3 rows in a precise uniform grid, each object fully inside its cell, with generous transparent padding. Every cell must contain a distinctly different shape and mechanism, no repeating the same shape. Side-view material rendering, intricate painterly sci-fi artwork, strong readable silhouettes, realistic textured construction and illumination. No frame or grid lines, no ground, no scenic background, no cast shadows, no text, no watermark; fully transparent background."
+  },
+  "initial_themes": {
+    "fleet": {
+      "helios": "solar-corona scrapyard: golden hot plasma drones, scorched bronze interceptors, spiked flare turrets, ember cores, radiant armored probes",
+      "nacre": "alien coral abyss in space: pearl-white biotech drones, branching red coral sentries, luminous teal jelly-like mines, nautilus machines",
+      "prism": "glacial crystalline debris field: cobalt ice machines, violet crystalline interceptors, cyan prism sentries, fractured angular crystal mines",
+      "forge": "molten industrial foundry: red-black heavy gunships, riveted furnace drones, magma cored mines, industrial repair automata",
+      "citadel": "ancient alien mechanical fortress: gunmetal and brass sentinel ships, blade-like defenses, armored drones, violet power core constructs"
+    },
+    "scenery": {
+      "helios": "derelict solar infrastructure and fragments of star-forged asteroid, blazing plasma vents, broken metallic solar collectors and scorched satellites",
+      "nacre": "strange alien coral reefs, spiny pearlescent shells and translucent bioluminescent organisms in deep space",
+      "prism": "floating ice formations, luminous blue and violet crystalline fragments, fractured alien crystal mechanisms",
+      "forge": "volcanic rocks, molten furnace chimneys, industrial machinery, sparks and volcanic vents",
+      "citadel": "fragments of ancient mechanical fortress, antenna towers, abandoned defense turrets, floating metallic debris and alien generators"
+    }
+  }
+}

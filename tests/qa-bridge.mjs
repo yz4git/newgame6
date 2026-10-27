@@ -1,6 +1,6 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-4.3.0';
-import { Flight } from './model.mjs?v=lumen-4.3.0';
+import { start } from './app.mjs?v=lumen-4.4.0';
+import { Flight } from './model.mjs?v=lumen-4.4.0';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
@@ -33,6 +33,12 @@ addEventListener('message', e => {
     f.p.y=base.center;f.setView(f.view.w,f.view.h,true);
     for(let i=0;i<5;i++)f.spawn(['wisp','ray','thorn','elite','wisp'][i],f.p.x+f.view.w*(.13+i*.095),f.p.y-45+(i%2)*95);
     start(f);f.status='qaStill';return;
+  }
+  if(e.data.wingQA.startsWith('visuals-')){
+    const stage=Number(e.data.wingQA.slice(8));f.time=stage*30+12;f.expedition=true;f.biomeIndex=stage;f.enemies=[];
+    const kinds=['wisp','ray','thorn','guard','miner','mender','splitter','sniper','elite'];
+    for(let i=0;i<kinds.length;i++)f.spawn(kinds[i],f.p.x+f.view.w*(.27+(i%3)*.19),f.p.y+(Math.floor(i/3)-1)*125);
+    f.setView(f.view.w,f.view.h,true);start(f);f.status='qaStill';return;
   }
   if(e.data.wingQA.startsWith('impact-')){
     f.expedition=true;f.time=17;f.gateIndex=2;f.biomeIndex=0;f.enemies=[];f.spawnGate();
