@@ -1,1 +1,1 @@
-{"name": "lumen-wing", "version": "4.4.0", "private": true, "type": "module", "scripts": {"test": "node --test tests/*.test.mjs", "check": "node scripts/check.mjs"}}
+{"name": "lumen-wing", "version": "4.4.1", "private": true, "type": "module", "scripts": {"test": "node --test tests/*.test.mjs", "check": "node scripts/check.mjs"}}

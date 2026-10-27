@@ -1,10 +1,10 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.4.0';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.4.0';
-import {Painter} from './render.mjs?v=lumen-4.4.0';
-import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.4.0';
-import {Sound} from './audio.mjs?v=lumen-4.4.0';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.4.0';
-import {installTouchGuards} from './touch.mjs?v=lumen-4.4.0';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.4.1';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.4.1';
+import {Painter} from './render.mjs?v=lumen-4.4.1';
+import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.4.1';
+import {Sound} from './audio.mjs?v=lumen-4.4.1';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.4.1';
+import {installTouchGuards} from './touch.mjs?v=lumen-4.4.1';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
@@ -158,8 +158,8 @@ function frame(now){
  const menu=['title','hangar','guide'].includes(mode),startDraw=performance.now();painter.draw(menu?preview:f,mode==='hangar'?'title':mode,visualTime);renderCost=performance.now()-startDraw;requestAnimationFrame(frame);
 }
 updateTitle();syncSound();requestAnimationFrame(frame);
-painter.loadAssets().then(()=>{ready=true;$('assetStatus').hidden=true;$('start').disabled=false;$('deploy').disabled=false;if(mode==='hangar')renderHangar();}).catch(error=>{console.warn('機体素材を読み込めませんでした',error);ready=true;$('assetStatus').textContent='機体画像を読み込めませんでした。再読み込みしてください。';$('start').disabled=false;$('deploy').disabled=false;});
-if('serviceWorker'in navigator&&!['localhost','terminal.local','127.0.0.1'].includes(location.hostname))navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
+const assetBoot=painter.loadAssets().then(()=>{ready=true;$('assetStatus').hidden=true;$('start').disabled=false;$('deploy').disabled=false;if(mode==='hangar')renderHangar();}).catch(error=>{console.warn('機体素材を読み込めませんでした',error);ready=true;$('assetStatus').textContent='機体画像を読み込めませんでした。再読み込みしてください。';$('start').disabled=false;$('deploy').disabled=false;});
+if('serviceWorker'in navigator&&!['localhost','terminal.local','127.0.0.1'].includes(location.hostname))assetBoot.then(()=>setTimeout(()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}),8000));
 
 function renderLoadout(){
  for(const [id,list,selected,field] of [['modList',MODS,record.mod,'mod'],['contractList',CONTRACTS,record.contract,'contract']]){

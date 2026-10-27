@@ -1,11 +1,11 @@
-import {terrainTiles,terrainPoints} from './terrain.mjs?v=lumen-4.4.0';
-import {gateHazard,HAZARD_COLORS} from './hazards.mjs?v=lumen-4.4.0';
-import {CHASSIS} from './catalog.mjs?v=lumen-4.4.0';
-import {preloadArcade,paintArcadeTerrain,paintArcadeBackdrop} from './arcade-art.mjs?v=lumen-4.4.0';
-import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-4.4.0';
-import { clamp } from './model.mjs?v=lumen-4.4.0';
-import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-4.4.0';
-import {preloadVisuals,paintFleet,paintScenerySprite,paintSceneryDepth} from './visuals.mjs?v=lumen-4.4.0';
+import {terrainTiles,terrainPoints} from './terrain.mjs?v=lumen-4.4.1';
+import {gateHazard,HAZARD_COLORS} from './hazards.mjs?v=lumen-4.4.1';
+import {CHASSIS} from './catalog.mjs?v=lumen-4.4.1';
+import {preloadArcade,paintArcadeTerrain,paintArcadeBackdrop} from './arcade-art.mjs?v=lumen-4.4.1';
+import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-4.4.1';
+import { clamp } from './model.mjs?v=lumen-4.4.1';
+import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-4.4.1';
+import {preloadVisuals,paintFleet,paintScenerySprite,paintSceneryDepth} from './visuals.mjs?v=lumen-4.4.1';
 const TAU = Math.PI * 2;
 const hash = (a, b = 0) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 const oval = (c, x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); };
@@ -24,12 +24,12 @@ const ZONES=[
 export class Painter {
   constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.atlas=null; this.frames=null; this.flashes={}; this.hazardArt=[]; this.hazardShadows=[]; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.visualsReady=false;this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; preloadStageArt().catch(()=>{});preloadArcade().catch(()=>{}); preloadMaterials().catch(()=>{}); }
   async loadAssets() {
-    const [data,img]=await Promise.all([fetch(new URL('./assets/arcade-atlas-v3.json?v=lumen-4.4.0',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/arcade-atlas-v3.webp?v=lumen-4.4.0',import.meta.url).href;})]);
+    const [data,img]=await Promise.all([fetch(new URL('./assets/arcade-atlas-v3.json?v=lumen-4.4.1',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/arcade-atlas-v3.webp?v=lumen-4.4.1',import.meta.url).href;})]);
     await preloadArcade();
-    const [extra,img2]=await Promise.all([fetch(new URL('./assets/enemies-v4.json?v=lumen-4.4.0',import.meta.url)).then(r=>{if(!r.ok)throw Error('enemy metadata');return r.json();}),new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=new URL('./assets/enemies-v4.webp?v=lumen-4.4.0',import.meta.url);})]);
+    const [extra,img2]=await Promise.all([fetch(new URL('./assets/enemies-v4.json?v=lumen-4.4.1',import.meta.url)).then(r=>{if(!r.ok)throw Error('enemy metadata');return r.json();}),new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=new URL('./assets/enemies-v4.webp?v=lumen-4.4.1',import.meta.url);})]);
     this.extraFrames=extra.frames;this.extraAtlas=img2;
     this.atlas=img;this.frames=data.frames;
-    this.hazardArt=await Promise.all(['flare','coral','prism','lava','shutter'].map(name=>new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=new URL(`./assets/hazard-${name}-v5.webp?v=lumen-4.4.0`,import.meta.url).href;})));
+    this.hazardArt=await Promise.all(['flare','coral','prism','lava','shutter'].map(name=>new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=new URL(`./assets/hazard-${name}-v5.webp?v=lumen-4.4.1`,import.meta.url).href;})));
     this.hazardShadows=this.hazardArt.map(im=>{if(!im)return null;const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const ctx=cv.getContext('2d');ctx.drawImage(im,0,0);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#08111c';ctx.fillRect(0,0,cv.width,cv.height);return cv;});
     for(const [key,[x,y,w,h]] of Object.entries({...this.frames,...this.extraFrames})){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(this.extraFrames[key]?img2:img,x,y,w,h,0,0,w,h);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#fff1dc';ctx.fillRect(0,0,w,h);this.flashes[key]=cv;}
     this.visualsReady=true;preloadVisuals(this.visualBiome??0).catch(()=>{});

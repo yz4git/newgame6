@@ -1,6 +1,6 @@
 // Explicit, local-only fixtures. No QA controls are shipped in dist.
-import { start } from './app.mjs?v=lumen-4.4.0';
-import { Flight } from './model.mjs?v=lumen-4.4.0';
+import { start } from './app.mjs?v=lumen-4.4.1';
+import { Flight } from './model.mjs?v=lumen-4.4.1';
 document.body.dataset.qaReady='yes';
 addEventListener('message', e => {
   document.body.dataset.qaMessage=JSON.stringify({origin:e.origin,here:location.origin,data:e.data});
