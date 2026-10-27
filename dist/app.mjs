@@ -1,21 +1,21 @@
-import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.4.1';
-import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.4.1';
-import {Painter} from './render.mjs?v=lumen-4.4.1';
-import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.4.1';
-import {Sound} from './audio.mjs?v=lumen-4.4.1';
-import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.4.1';
-import {installTouchGuards} from './touch.mjs?v=lumen-4.4.1';
+import {Flight,STEP,clock,clamp} from './model.mjs?v=lumen-4.5.0';
+import {CHASSIS,UPGRADES,EVOLUTIONS,META,OBJECTIVES,BOSSES,MODS,RELICS,SECTOR_MODS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent,evolutionReady} from './catalog.mjs?v=lumen-4.5.0';
+import {Painter} from './render.mjs?v=lumen-4.5.0';
+import {STAGES,stageIndex,stageArtStatus} from './stage-art.mjs?v=lumen-4.5.0';
+import {Sound} from './audio.mjs?v=lumen-4.5.0';
+import {loadRecord,saveRecord,settleRun,purchaseUpgrade,refundUpgrades,selectChassis,flightOptions} from './storage.mjs?v=lumen-4.5.0';
+import {installTouchGuards} from './touch.mjs?v=lumen-4.5.0';
 installTouchGuards();
 const $=id=>document.getElementById(id),painter=new Painter($('sky'));
 let record=loadRecord(),saveFailed=false,ready=false;const sound=new Sound(record.sound);
 let f=new Flight(),preview=new Flight(7,flightOptions(record)),mode='title',hangarBack='title',accumulator=0,last=performance.now(),visualTime=0,hudTime=0,repeatTimer=0,toastUntil=0,armoryKey='',ended=false,renderCost=0,rawFrame=0;
-let impactSerial=0;
+let impactSerial=0,resumeAt=0;
 const held=new Set();
 const weaponKeys=['star',...Object.keys(UPGRADES).filter(k=>UPGRADES[k].type==='weapon')];const weaponIcons={star:'✦',...Object.fromEntries(Object.entries(UPGRADES).filter(([,u])=>u.type==='weapon').map(([k,u])=>[k,u.icon]))};
 const weaponName=k=>k==='star'?'星弾':UPGRADES[k].name;
 const evolutionFor=k=>Object.keys(EVOLUTIONS).find(id=>EVOLUTIONS[id].weapon===k);
 function clearInput(){held.clear();$('rise').classList.remove('held');repeatTimer=0;}
-function setMode(next){mode=next;clearInput();accumulator=0;const screens={title:'titleScreen',paused:'pauseScreen',upgrade:'upgradeScreen',loot:'lootScreen',result:'resultScreen',guide:'guideScreen',hangar:'hangarScreen',decision:'decisionScreen'};for(const [key,id]of Object.entries(screens))$(id).hidden=next!==key;$('hud').hidden=!['playing','paused','upgrade','loot','decision'].includes(next);}
+function setMode(next){if(next!=='playing'){resumeAt=0;$('resumeCountdown').hidden=true;}mode=next;clearInput();accumulator=0;const screens={title:'titleScreen',paused:'pauseScreen',upgrade:'upgradeScreen',loot:'lootScreen',result:'resultScreen',guide:'guideScreen',hangar:'hangarScreen',decision:'decisionScreen'};for(const [key,id]of Object.entries(screens))$(id).hidden=next!==key;$('hud').hidden=!['playing','paused','upgrade','loot','decision'].includes(next);}
 function resize(){painter.resize(innerWidth,innerHeight);f.setView(painter.w,painter.h,true);preview.setView(painter.w,painter.h,true);}
 window.addEventListener('resize',resize);resize();
 function persist(next){record=next;if(!saveRecord(record))saveFailed=true;updateTitle();}
@@ -26,11 +26,11 @@ function updateTitle(){
 function syncSound(){for(const b of document.querySelectorAll('.sound-toggle')){b.setAttribute('aria-pressed',String(sound.enabled));b.setAttribute('aria-label',sound.enabled?'サウンドをオフ':'サウンドをオン');const t=b.querySelector('.sound-text');if(t)t.textContent=sound.enabled?'SOUND ON':'SOUND OFF';b.style.opacity=sound.enabled?'1':'.65';}}
 function refreshPreview(){preview=new Flight(7,flightOptions(record));preview.setView(painter.w,painter.h,true);}
 export function start(initialFlight){
- if(!ready)return false;sound.unlock();f=initialFlight instanceof Flight?initialFlight:new Flight(Date.now(),flightOptions(record));f.setView(painter.w,painter.h,true);painter.trail=[];painter.lastTrail=0;ended=false;armoryKey='';$('toast').hidden=true;$('flightTip').style.opacity='1';setMode('playing');f.flap();updateHUD();last=performance.now();return true;
+ if(!ready)return false;resumeAt=0;++impactSerial;$('impactNotice').hidden=true;$('impactFlash').hidden=true;sound.unlock();f=initialFlight instanceof Flight?initialFlight:new Flight(Date.now(),flightOptions(record));f.setView(painter.w,painter.h,true);painter.trail=[];painter.lastTrail=0;ended=false;armoryKey='';$('toast').hidden=true;$('flightTip').style.opacity='1';setMode('playing');f.flap();updateHUD();last=performance.now();return true;
 }
 function home(){setMode('title');refreshPreview();updateTitle();$('start').focus({preventScroll:true});}
 function pause(){if(mode!=='playing')return;setMode('paused');$('pauseBuild').innerHTML=weaponKeys.filter(k=>k==='star'||f.skills[k]).map(k=>{const id=evolutionFor(k);return f.evolutions[id]?`<span class="evo-text">${EVOLUTIONS[id].name}</span>`:`${weaponName(k)} LV.${k==='star'?1+f.skills.power:f.skills[k]}`;}).join(' / ')+`<br>威力 ${Math.round(f.power*100)}%　軽減 ${f.skills.armor*2+f.meta.armor}　再抽選 ${f.rerolls}<br>改造：${MODS[f.mod].name}<br>${MODS[f.mod].text}<br>${f.relics.map(k=>RELICS[k].name+'：'+RELICS[k].text).join('<br>')}`;$('resume').focus({preventScroll:true});}
-function resume(){if(mode!=='paused')return;setMode('playing');f.p.hurt=Math.max(f.p.hurt,.5);last=performance.now();}
+function resume(){if(mode!=='paused')return;setMode('playing');resumeAt=performance.now()+2400;clearInput();f.p.hurt=Math.max(f.p.hurt,.8);last=performance.now();}
 function toast(text,seconds=2.7){$('toast').textContent=text;$('toast').hidden=false;toastUntil=f.time+seconds;}
 function showImpact(e){
  const shield=e.type==='guard',terrain=e.source==='浮遊装甲への接触',hazard=e.source?.includes('への接触')&&!terrain;
@@ -121,6 +121,8 @@ function handleEvents(){
  syncFlow();
 }
 function updateHUD(){
+ $('lowHealth').hidden=f.p.hp>f.p.maxHP*.3;
+
  $('sky').dataset.worldY=f.p.y.toFixed(1);$('sky').dataset.velocity=f.p.vy.toFixed(1);$('sky').dataset.cameraY=f.camera.y.toFixed(1);$('sky').dataset.frameMs=rawFrame.toFixed(1);$('sky').dataset.renderMs=renderCost.toFixed(1);
  $('hpText').textContent=`${Math.ceil(f.p.hp)} / ${f.p.maxHP}`;$('hpFill').style.width=`${f.p.hp/f.p.maxHP*100}%`;$('level').textContent=`LV. ${f.level}`;$('kills').textContent=f.kills;$('xpFill').style.width=`${clamp(f.xp/f.xpNeed*100,0,100)}%`;
  $('gateStreak').textContent=f.gateStreak?`通路 ${f.gateStreak}連続 ×${Math.min(5,f.gateStreak)}`:'通路を無傷で抜けて連続ボーナス';
@@ -131,7 +133,7 @@ function updateHUD(){
  if(f.time>10)$('flightTip').style.opacity='0';if(f.time>toastUntil)$('toast').hidden=true;
  const key=JSON.stringify([f.skills,f.evolutions,f.rerolls,f.relics,f.sectorMod,Math.floor(contractProgress(f))]);if(key!==armoryKey){armoryKey=key;$('armory').innerHTML=weaponKeys.filter(k=>k==='star'||f.skills[k]).map(k=>{const rank=k==='star'?1+f.skills.power:f.skills[k],id=evolutionFor(k),evolved=f.evolutions[id];return `<span class="weapon-slot${!rank?' empty':''}${evolved?' evolved':''}" title="${evolved?EVOLUTIONS[id].name:weaponName(k)}">${evolved?EVOLUTIONS[id].icon:weaponIcons[k]}<b>${evolved?'EX':rank||'−'}</b></span>`;}).join('');$('buildInfo').textContent=`${MODS[f.mod].name} / 遺物 ${f.relics.length} / ${CONTRACTS[f.contract].name} ${Math.floor(contractProgress(f))}/${CONTRACTS[f.contract].goal}`;}
 }
-function beginInput(source){if(mode!=='playing')return;sound.unlock();held.add(source);f.flap();repeatTimer=.23;$('rise').classList.add('held');}
+function beginInput(source){if(mode!=='playing'||resumeAt>performance.now())return;sound.unlock();held.add(source);f.flap();repeatTimer=.23;$('rise').classList.add('held');}
 function endInput(source){held.delete(source);if(!held.size)$('rise').classList.remove('held');}
 window.addEventListener('pointerdown',e=>{if(mode!=='playing'||e.button!==0)return;if(e.target.closest('button,a')&&!e.target.closest('#rise'))return;e.preventDefault();beginInput(`p${e.pointerId}`);},{passive:false});
 window.addEventListener('pointerup',e=>endInput(`p${e.pointerId}`));window.addEventListener('pointercancel',e=>endInput(`p${e.pointerId}`));window.addEventListener('blur',()=>{clearInput();pause();});
@@ -153,12 +155,12 @@ $('refund').onclick=()=>{const result=refundUpgrades(record);persist(result.reco
 for(const b of document.querySelectorAll('.sound-toggle'))b.onclick=()=>{record.sound=sound.toggle();persist(record);syncSound();};
 function frame(now){
  rawFrame=now-last;const elapsed=Math.min(.075,Math.max(0,rawFrame/1000));last=now;visualTime+=painter.reduce&&mode!=='playing'?0:elapsed;
- if(mode==='playing'){accumulator+=elapsed;for(let step=0;accumulator>=STEP&&mode==='playing'&&step<10;step++){if(held.size){repeatTimer-=STEP;if(repeatTimer<=0){f.flap();repeatTimer=.23;}}f.tick(STEP);accumulator-=STEP;handleEvents();}hudTime+=elapsed;if(hudTime>.09){updateHUD();hudTime=0;}}
+ if(mode==='playing'&&resumeAt>now){clearInput();$('resumeCountdown').hidden=false;$('resumeCountdown').textContent=Math.ceil((resumeAt-now)/800);}else if(mode==='playing'){$('resumeCountdown').hidden=true;resumeAt=0;accumulator+=elapsed;for(let step=0;accumulator>=STEP&&mode==='playing'&&step<10;step++){if(held.size){repeatTimer-=STEP;if(repeatTimer<=0){f.flap();repeatTimer=.23;}}f.tick(STEP);accumulator-=STEP;handleEvents();}hudTime+=elapsed;if(hudTime>.09){updateHUD();hudTime=0;}}
  else if(['title','hangar','guide'].includes(mode)){preview.camera.x+=elapsed*(painter.reduce?0:8);preview.camera.y=-painter.h/2+Math.sin(visualTime*.1)*35;}
  const menu=['title','hangar','guide'].includes(mode),startDraw=performance.now();painter.draw(menu?preview:f,mode==='hangar'?'title':mode,visualTime);renderCost=performance.now()-startDraw;requestAnimationFrame(frame);
 }
 updateTitle();syncSound();requestAnimationFrame(frame);
-const assetBoot=painter.loadAssets().then(()=>{ready=true;$('assetStatus').hidden=true;$('start').disabled=false;$('deploy').disabled=false;if(mode==='hangar')renderHangar();}).catch(error=>{console.warn('機体素材を読み込めませんでした',error);ready=true;$('assetStatus').textContent='機体画像を読み込めませんでした。再読み込みしてください。';$('start').disabled=false;$('deploy').disabled=false;});
+const assetBoot=painter.loadAssets(message=>{$('assetStatus').textContent=message;}).then(()=>{ready=true;$('assetStatus').hidden=true;$('start').disabled=false;$('deploy').disabled=false;if(mode==='hangar')renderHangar();}).catch(error=>{console.warn('機体素材を読み込めませんでした',error);ready=true;$('assetStatus').textContent='機体画像を読み込めませんでした。再読み込みしてください。';$('start').disabled=false;$('deploy').disabled=false;});
 if('serviceWorker'in navigator&&!['localhost','terminal.local','127.0.0.1'].includes(location.hostname))assetBoot.then(()=>setTimeout(()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}),8000));
 
 function renderLoadout(){

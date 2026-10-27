@@ -1,7 +1,7 @@
-import {expeditionMethods} from './expedition.mjs?v=lumen-4.4.1';
-import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.4.1';
-import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.4.1';
-import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.4.1';
+import {expeditionMethods} from './expedition.mjs?v=lumen-4.5.0';
+import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.5.0';
+import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.5.0';
+import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.5.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
