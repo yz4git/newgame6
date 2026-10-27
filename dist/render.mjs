@@ -1,10 +1,11 @@
-import {terrainTiles} from './terrain.mjs?v=lumen-4.3.0';
-import {gateHazard,HAZARD_COLORS} from './hazards.mjs?v=lumen-4.3.0';
-import {CHASSIS} from './catalog.mjs?v=lumen-4.3.0';
-import {preloadArcade,paintArcadeTerrain,paintArcadeBackdrop} from './arcade-art.mjs?v=lumen-4.3.0';
-import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-4.3.0';
-import { clamp } from './model.mjs?v=lumen-4.3.0';
-import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-4.3.0';
+import {terrainTiles,terrainPoints} from './terrain.mjs?v=lumen-4.4.0';
+import {gateHazard,HAZARD_COLORS} from './hazards.mjs?v=lumen-4.4.0';
+import {CHASSIS} from './catalog.mjs?v=lumen-4.4.0';
+import {preloadArcade,paintArcadeTerrain,paintArcadeBackdrop} from './arcade-art.mjs?v=lumen-4.4.0';
+import {preloadMaterials,materialImage} from './stage-materials.mjs?v=lumen-4.4.0';
+import { clamp } from './model.mjs?v=lumen-4.4.0';
+import { paintStageBackdrop, preloadStageArt } from './stage-art.mjs?v=lumen-4.4.0';
+import {preloadVisuals,paintFleet,paintScenerySprite,paintSceneryDepth} from './visuals.mjs?v=lumen-4.4.0';
 const TAU = Math.PI * 2;
 const hash = (a, b = 0) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 const oval = (c, x, y, rx, ry) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); };
@@ -21,16 +22,17 @@ const ZONES=[
 {hazard:'#9becf5',accent:'#77c6e3',rock:['#0a1b2c','#35577a','#8dcbd7']}
 ];
 export class Painter {
-  constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.atlas=null; this.frames=null; this.flashes={}; this.hazardArt=[]; this.hazardShadows=[]; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; preloadStageArt().catch(()=>{});preloadArcade().catch(()=>{}); preloadMaterials().catch(()=>{}); }
+  constructor(canvas) { this.canvas = canvas; this.c = canvas.getContext('2d', { alpha: false }); this.atlas=null; this.frames=null; this.flashes={}; this.hazardArt=[]; this.hazardShadows=[]; this.trail = []; this.lastTrail = 0; this.width = 1100; this.height = 640; this.dpr = 1; this.visualsReady=false;this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; preloadStageArt().catch(()=>{});preloadArcade().catch(()=>{}); preloadMaterials().catch(()=>{}); }
   async loadAssets() {
-    const [data,img]=await Promise.all([fetch(new URL('./assets/arcade-atlas-v3.json?v=lumen-4.3.0',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/arcade-atlas-v3.webp?v=lumen-4.3.0',import.meta.url).href;})]);
+    const [data,img]=await Promise.all([fetch(new URL('./assets/arcade-atlas-v3.json?v=lumen-4.4.0',import.meta.url).href).then(r=>{if(!r.ok)throw Error('atlas metadata');return r.json();}),new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL('./assets/arcade-atlas-v3.webp?v=lumen-4.4.0',import.meta.url).href;})]);
     await preloadArcade();
-    const [extra,img2]=await Promise.all([fetch(new URL('./assets/enemies-v4.json?v=lumen-4.3.0',import.meta.url)).then(r=>{if(!r.ok)throw Error('enemy metadata');return r.json();}),new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=new URL('./assets/enemies-v4.webp?v=lumen-4.3.0',import.meta.url);})]);
+    const [extra,img2]=await Promise.all([fetch(new URL('./assets/enemies-v4.json?v=lumen-4.4.0',import.meta.url)).then(r=>{if(!r.ok)throw Error('enemy metadata');return r.json();}),new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=new URL('./assets/enemies-v4.webp?v=lumen-4.4.0',import.meta.url);})]);
     this.extraFrames=extra.frames;this.extraAtlas=img2;
     this.atlas=img;this.frames=data.frames;
-    this.hazardArt=await Promise.all(['flare','coral','prism','lava','shutter'].map(name=>new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=new URL(`./assets/hazard-${name}-v5.webp?v=lumen-4.3.0`,import.meta.url).href;})));
+    this.hazardArt=await Promise.all(['flare','coral','prism','lava','shutter'].map(name=>new Promise(resolve=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>resolve(null);image.src=new URL(`./assets/hazard-${name}-v5.webp?v=lumen-4.4.0`,import.meta.url).href;})));
     this.hazardShadows=this.hazardArt.map(im=>{if(!im)return null;const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const ctx=cv.getContext('2d');ctx.drawImage(im,0,0);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#08111c';ctx.fillRect(0,0,cv.width,cv.height);return cv;});
     for(const [key,[x,y,w,h]] of Object.entries({...this.frames,...this.extraFrames})){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(this.extraFrames[key]?img2:img,x,y,w,h,0,0,w,h);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#fff1dc';ctx.fillRect(0,0,w,h);this.flashes[key]=cv;}
+    this.visualsReady=true;preloadVisuals(this.visualBiome??0).catch(()=>{});
   }
   sprite(frame,width,hit=0){
     const extra=Boolean(this.extraFrames?.[frame]),frames=extra?this.extraFrames:this.frames,atlas=extra?this.extraAtlas:this.atlas;
@@ -62,7 +64,7 @@ export class Painter {
     c.save();c.translate(e.x,e.y);c.rotate(angle);
     if(e.type==='boss'||e.type==='elite')glow(c,15,0,e.r*1.5,'#e5a68712');
     const width=e.r*(e.type==='boss'?3.05:e.type==='elite'?3.1:2.65);
-    this.sprite(frame,width,e.hit);
+    if(!paintFleet(c,e,this.reduce))this.sprite(frame,width,e.hit);
     if(e.type==='guard'&&Math.sin(e.age*1.3)>-.3){c.strokeStyle='#8ceaffb0';c.lineWidth=3;c.beginPath();c.arc(0,0,e.r*1.2,Math.PI*.58,Math.PI*1.42);c.stroke();}
     if(e.type==='mender')glow(c,0,0,e.r*1.6,'#85ffb925');
     if(e.type==='boss'&&e.bossVariant===2){c.strokeStyle='#bba1ff90';c.lineWidth=2;for(let i=0;i<3;i++){c.beginPath();c.arc(0,0,e.r*1.2+i*8,e.age*.5+i*2,e.age*.5+i*2+1.4);c.stroke();}}
@@ -72,7 +74,10 @@ export class Painter {
   }
   resize(w, h) { this.dpr = Math.min(devicePixelRatio || 1, 2); this.canvas.width = Math.round(w * this.dpr); this.canvas.height = Math.round(h * this.dpr); this.width = w; this.height = h; this.h = w / h < .8 ? 840 : 640; this.w = this.h * w / h; }
   background(t, camera, stageTime=t) {
+    const biome=Math.max(0,Math.min(4,Math.floor(stageTime/30)));
+    if(this.visualBiome!==biome){this.visualBiome=biome;if(this.visualsReady)preloadVisuals(biome).catch(()=>{});}
     if(!paintArcadeBackdrop(this.c,this.w,this.h,camera,t,stageTime))paintStageBackdrop(this.c,this.w,this.h,camera,t,stageTime,this.reduce);
+    paintSceneryDepth(this.c,this.w,this.h,camera,t,biome,this.reduce,this.artSeed||0);
   }
   legacyShip(x, y, tilt, boost, t, size = 1, hurt = 0) {
     const c = this.c;
@@ -140,7 +145,7 @@ export class Painter {
       const glowSize=h.shape==='orb'?h.r*2.8:height*.66;
       glow(c,h.x,h.y,glowSize,h.active?`${color}44`:`${color}20`);
       c.globalAlpha=h.active?1:.5;
-      if(im){c.save();c.translate(h.x,h.y);if(h.shape==='orb')c.rotate(Math.sin(time*1.5+g.hazardPhase)*.13);if(this.hazardShadows[h.theme])c.drawImage(this.hazardShadows[h.theme],-w/2-6,-height/2-6,w+12,height+12);c.drawImage(im,-w/2,-height/2,w,height);c.restore();}
+      if(im){c.save();c.translate(h.x,h.y);if(h.shape==='orb')c.rotate(Math.sin(time*1.5+g.hazardPhase)*.13);if(!this.reduce){const pulse=1+Math.sin(time*7+g.hazardPhase)*.035;c.scale(pulse,1/pulse);}if(this.hazardShadows[h.theme])c.drawImage(this.hazardShadows[h.theme],-w/2-6,-height/2-6,w+12,height+12);c.drawImage(im,-w/2,-height/2,w,height);c.restore();}
       else{c.fillStyle=color;c.beginPath();c.ellipse(h.x,h.y,w*.36,height*.42,0,0,TAU);c.fill();}
       c.globalAlpha=h.active?1:.5;
       if(h.active){c.globalCompositeOperation='screen';glow(c,h.x,h.y,h.r*1.4,`${color}66`);c.globalCompositeOperation='source-over';}
@@ -157,6 +162,11 @@ export class Painter {
     if(r.wall){for(const tile of terrainTiles(r,camera.y,camera.y+this.h))this.rock(tile,t,camera);return;}
     const c=this.c,z=ZONES[r.theme??0];
     c.save();paintArcadeTerrain(c,r);
+    // Integrate visual detail inside the same polygon used by collision.
+    const pts=terrainPoints(r),seed=(r.gateId||r.id||0)+Math.round(r.y/90)+(this.artSeed||0)%285;
+    c.save();c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
+    c.translate(r.x+r.rx*.08,r.y+(r.side||1)*r.ry*.35);
+    paintScenerySprite(c,r.theme??0,seed,Math.floor(seed/9),r.rx*1.35,t,.78,this.reduce);c.restore();
     const edge=r.y-r.side*r.ry*.7;c.fillStyle=z.hazard;
     for(let j=-1;j<=1;j++){c.fillRect(r.x+j*r.rx*.25-1.5,edge-1.5,3,3);}
     c.restore();
@@ -230,7 +240,7 @@ export class Painter {
     if (e.hp<e.maxHP && e.type!=='boss') { c.fillStyle='#171d32'; c.fillRect(e.x-e.r,e.y-e.r-14,e.r*2,2); c.fillStyle='#d6a4c3'; c.fillRect(e.x-e.r,e.y-e.r-14,e.r*2*Math.max(0,e.hp/e.maxHP),2); }
   }
   draw(f, mode = 'playing', visualTime = 0) {
-    const c = this.c; c.setTransform(this.canvas.width / this.w, 0, 0, this.canvas.height / this.h, 0, 0); const t = visualTime;
+    const c = this.c; c.setTransform(this.canvas.width / this.w, 0, 0, this.canvas.height / this.h, 0, 0); const t = visualTime;this.artSeed=f.visualSeed||0;
     this.background(t, f.camera,mode==='title'||mode==='guide'?t:f.expedition?f.getBiome()*30+12:f.time); if(!['title','guide','hangar'].includes(mode)){c.fillStyle='#030b1b33';c.fillRect(0,0,this.w,this.h);} c.save(); c.translate(-f.camera.x, -f.camera.y);
     if (mode !== 'title' && mode !== 'guide') {
       for(const r of f.rocks)if(r.side===-1)this.gateMarker(r,t);

@@ -1,7 +1,7 @@
-import {expeditionMethods} from './expedition.mjs?v=lumen-4.3.0';
-import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.3.0';
-import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.3.0';
-import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.3.0';
+import {expeditionMethods} from './expedition.mjs?v=lumen-4.4.0';
+import {circleHitsTerrain} from './terrain.mjs?v=lumen-4.4.0';
+import {gateHazard,hitsGateHazard,HAZARD_NAMES} from './hazards.mjs?v=lumen-4.4.0';
+import {VERSION,BOSSES,CHASSIS,UPGRADES,EVOLUTIONS,META,evolutionReady} from './catalog.mjs?v=lumen-4.4.0';
 export {VERSION,UPGRADES,EVOLUTIONS};
 export const STEP=1/120;
 export const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -12,7 +12,7 @@ const segmentDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=clamp(((px
 let sequence=0;
 export class Flight{
  constructor(seed=Date.now(),options={}){
-  this.seed=seed>>>0||1;this.choiceSeed=(this.seed^0x9e3779b9)>>>0||17;this.time=0;this.status='playing';
+  this.seed=seed>>>0||1;this.visualSeed=(this.seed^(this.seed>>>16))>>>0;this.choiceSeed=(this.seed^0x9e3779b9)>>>0||17;this.time=0;this.status='playing';
   this.runId=`${Date.now().toString(36)}-${++sequence}-${this.seed}`;
   this.chassis=CHASSIS[options.chassis]?options.chassis:'lancer';this.heat=options.heat===2?2:1;
   this.meta=Object.fromEntries(Object.entries(META).map(([k,u])=>[k,clamp(Math.floor(Number(options.meta?.[k])||0),0,u.max)]));
@@ -46,7 +46,7 @@ export class Flight{
   const stats={guard:[28,160,45,22,5],miner:[24,85,48,18,4],mender:[21,60,55,14,4],splitter:[24,70,80,18,3],sniper:[27,95,35,20,5],wisp:[15,19,65,14,1],ray:[23,42,88,20,2],thorn:[21,75,26,18,3],elite:[43,500,30,26,20],boss:[88,16000,30,30,100]}[type];
   let [r,hp,speed,damage,xp]=stats;if(type==='boss')r=Math.min(88,Math.max(50,this.view.w*.16));const heat=this.heat===2?1.28:1;
   if(type!=='boss')hp*=(1+this.time/115)*(this.sectorMod==='fragile'?.7:this.sectorMod==='armada'?1.15:1);hp*=heat;damage*=(this.heat===2?1.12:1)*(this.sectorMod==='fragile'?1.2:1);
-  const e={id:++this.id,type,x,y,r,hp,maxHP:hp,speed,damage:Math.round(damage),xp,age:0,timer:1.4+this.rand(),hit:0,orbitHit:0,phase:this.rand()*TAU,warn:0,dash:0,dx:0,dy:0,aim:0,reinforce:4,phaseIndex:0,bossVariant:this.bossVariant};
+  const e={id:++this.id,type,x,y,r,hp,maxHP:hp,speed,damage:Math.round(damage),xp,age:0,timer:1.4+this.rand(),hit:0,orbitHit:0,phase:this.rand()*TAU,warn:0,dash:0,dx:0,dy:0,aim:0,reinforce:4,phaseIndex:0,bossVariant:this.bossVariant,visualBiome:this.getBiome(),visualSeed:this.visualSeed};
   this.enemies.push(e);return e;
  }
  spawnWave(){

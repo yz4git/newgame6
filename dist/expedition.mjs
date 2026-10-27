@@ -1,4 +1,4 @@
-import {CHASSIS,MODS,RELICS,SECTOR_MODS,CONTRACTS} from './catalog.mjs?v=lumen-4.3.0';
+import {CHASSIS,MODS,RELICS,SECTOR_MODS,CONTRACTS} from './catalog.mjs?v=lumen-4.4.0';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const expeditionMethods={
  initExpedition(options){

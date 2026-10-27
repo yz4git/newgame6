@@ -15,3 +15,13 @@ const atlas=JSON.parse(readFileSync('dist/assets/arcade-atlas-v3.json','utf8'));
 console.log('JavaScript, UI bindings, 9 arcade frames, manifest and complete offline asset graph verified.');
 
 const newEnemies=JSON.parse(readFileSync('dist/assets/enemies-v4.json','utf8'));assert.equal(Object.keys(newEnemies.frames).length,6);for(const frame of Object.values(newEnemies.frames)){const [x,y,w,h]=frame;assert.ok(x>=0&&y>=0&&w>0&&h>0&&x+w<=newEnemies.size[0]&&y+h<=newEnemies.size[1]);}
+const visuals=JSON.parse(readFileSync('dist/assets/visuals-v6.json','utf8'));
+assert.equal(visuals.original_artworks,570);assert.equal(visuals.presentations_per_artwork,5);
+assert.equal(Object.keys(visuals.atlases).length,40);
+let visualFrames=0;
+for(const atlas of Object.values(visuals.atlases)){
+ assert.ok(core.includes(`assets/${atlas.file}`),`Not cached: ${atlas.file}`);
+ const data=readFileSync(`dist/assets/${atlas.file}`);assert.equal(data.toString('ascii',0,4),'RIFF');assert.ok(data.length>20000);
+ for(const [x,y,w,h] of atlas.frames){assert.ok(w>0&&h>0&&x>=0&&y>=0&&x+w<=atlas.size[0]&&y+h<=atlas.size[1]);visualFrames++;}
+}
+assert.equal(visualFrames,570);
