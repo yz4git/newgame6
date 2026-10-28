@@ -19,7 +19,7 @@ export function preloadMaterials(){
     const img=new Image();img.decoding='async';
     img.onload=()=>{cache[index]=img;resolve(true);};
     img.onerror=()=>resolve(false);
-    img.src=new URL('./assets/'+asset.file+'?v=lumen-4.5.0',import.meta.url).href;
+    img.src=new URL('./assets/'+asset.file+'?v=lumen-4.5.1',import.meta.url).href;
   })));
   return job;
 }

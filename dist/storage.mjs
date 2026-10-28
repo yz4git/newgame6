@@ -1,4 +1,4 @@
-import {CHASSIS,META,OBJECTIVES,MODS,RELICS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent} from './catalog.mjs?v=lumen-4.5.0';
+import {CHASSIS,META,OBJECTIVES,MODS,RELICS,CONTRACTS,contractProgress,chassisUnlocked,metaCost,metaSpent} from './catalog.mjs?v=lumen-4.5.1';
 const KEY='lumen-wing-v1';
 const integer=(n,max=1e9)=>Math.max(0,Math.min(max,Number.isFinite(Number(n))?Math.floor(Number(n)):0));
 export function normalizeRecord(v={}){

@@ -27,7 +27,7 @@ export function preloadVisuals(theme=0){
    }catch{} // Art still renders if an outline canvas cannot be allocated.
    resolve(true);
   };im.onerror=()=>resolve(false);
-  im.src=new URL(`./assets/${kind}-${VISUAL_THEMES[theme]}${pack}-v6.webp?v=lumen-4.5.0`,import.meta.url).href;
+  im.src=new URL(`./assets/${kind}-${VISUAL_THEMES[theme]}${pack}-v6.webp?v=lumen-4.5.1`,import.meta.url).href;
  }))));
  return record.loading;
 }
@@ -83,7 +83,7 @@ export function paintFleet(c,e,reduce=false){
  if(theme===4){c.shadowColor='#bcb9ff';c.shadowBlur=6;}
  const drawn=sprite(c,'fleet',theme,chosen,size);
  c.shadowBlur=0;
- if(theme===4){c.globalCompositeOperation='screen';c.globalAlpha=.24;sprite(c,'fleet',theme,chosen,size);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
+ c.globalCompositeOperation='screen';c.globalAlpha=theme===4?.28:.16;sprite(c,'fleet',theme,chosen,size);c.globalCompositeOperation='source-over';c.globalAlpha=1;
  if(e.hit>0){c.globalCompositeOperation='lighter';c.globalAlpha=Math.min(.45,e.hit*3);sprite(c,'fleet',theme,chosen,size);}
  c.restore();return drawn;
 }
