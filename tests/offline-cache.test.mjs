@@ -14,5 +14,5 @@ test('offline installation caches every asset in small batches before activation
  const urls=batches.flat();assert.ok(urls.includes('./index.html'));
  for(const theme of ['helios','nacre','prism','forge','citadel'])
   for(const kind of ['fleet','scenery'])for(const pack of ['a','b','c'])
-   assert.ok(urls.includes(`./assets/${kind}-${theme}-${pack}-v6.webp?v=lumen-4.5.0`));
+   assert.ok(urls.includes(`./assets/${kind}-${theme}-${pack}-v6.webp?v=lumen-4.5.1`));
 });

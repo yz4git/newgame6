@@ -39,3 +39,11 @@
 @media(max-height:500px) and (min-aspect-ratio:1/1){.impact-notice{top:34%;font-size:11px;padding:6px 10px}}
 
 .resume-countdown{position:absolute;inset:0;display:grid;place-items:center;background:#06102055;font:700 76px/1 ui-monospace,monospace;color:#fff2cd;text-shadow:0 0 25px #f1c778;z-index:4;pointer-events:none}.low-health{position:absolute;bottom:110px;left:50%;transform:translateX(-50%);padding:7px 14px;background:#5b172be6;border:1px solid #ffb0a1;color:#ffe1d2;font-size:12px;white-space:nowrap;pointer-events:none}@media(max-height:500px){.low-health{bottom:70px;font-size:10px}}
+
+/* Keep combat feedback readable without covering the craft or corridor. */
+.impact-notice{left:50%;top:115px;max-width:min(560px,90vw);white-space:normal;font-size:14px;padding:8px 16px}
+#hpFill.critical{background:#ff8f94;box-shadow:0 0 8px #ff506466}
+.hp-label{font-size:11px;text-shadow:0 1px 3px #000}
+.build-info{color:#bbcdd6;text-shadow:0 1px 3px #000}
+@media(max-height:600px) and (min-aspect-ratio:1/1){.impact-notice{top:84px;font-size:12px;padding:6px 12px}.hp-label{font-size:10px}}
+@media(max-aspect-ratio:4/5){#hpText{display:inline;font-size:10px}.pilot-status>div:last-child{width:155px}.hp-label{font-size:9px}.impact-notice{top:155px;max-width:90vw;font-size:12px}}

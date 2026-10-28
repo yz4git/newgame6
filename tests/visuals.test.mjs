@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Flight} from '../dist/model.mjs?v=lumen-4.5.0';
-import {preloadVisuals,paintFleet,paintScenerySprite,visualSelection,fleetDesignIndex,VISUAL_ART_COUNT,VISUAL_COMBINATIONS} from '../dist/visuals.mjs?v=lumen-4.5.0';
+import {Flight} from '../dist/model.mjs?v=lumen-4.5.1';
+import {preloadVisuals,paintFleet,paintScenerySprite,visualSelection,fleetDesignIndex,VISUAL_ART_COUNT,VISUAL_COMBINATIONS} from '../dist/visuals.mjs?v=lumen-4.5.1';
 
 test('sprite sets load per biome, animate, and preserve each spawned enemy’s biome',async()=>{
  const oldImage=globalThis.Image,oldDocument=globalThis.document,loaded=[];
